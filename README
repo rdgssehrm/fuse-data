@@ -1,0 +1,5 @@
+Prerequisites:
+
+Python3
+A database driver (e.g. pyscopg2)
+A database (e.g. postgresql)
