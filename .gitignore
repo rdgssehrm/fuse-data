@@ -1,4 +1,4 @@
 *~
 *.pyc
 fuse/config.py
-fuse/test_config.py
+test/test_config.py

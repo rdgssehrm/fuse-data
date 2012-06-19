@@ -1,0 +1,10 @@
+"""General configuration
+"""
+
+server_root = "/var/www/fuse-api"
+port = 1732
+db_type = "psql"
+db_params = { "host": "localhost",
+			  "database": "fusedata_test",
+			  "user": "fusedata",
+			  "password": "chooD5eej_ah" }
