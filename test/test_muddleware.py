@@ -31,7 +31,7 @@ class TestMuddleware(unittest.TestCase):
 		"""WSGI middlewares take an app object and wrap it up. Mock out an
 		object we can use to test middlewares.
 		"""
-		self.result = Mock()
+		self.result = ["Some result"]
 		self.app = Mock(return_value=self.result)
 		self.sr = Mock()
 		self.env = { }
@@ -43,6 +43,7 @@ class TestMuddleware(unittest.TestCase):
 		self.app.assert_called_once_with(self.env, self.sr)
 		self.assertIsInstance(res, mw.BinaryJSONIterator)
 		self.assertEqual(res.binary, self.result)
+		self.assertEqual(list(res), ['["Some result"]'])
 
 	def test_AccessFunction1(self):
 		wrap = mw.AccessFunctionWrapper(self.app)
