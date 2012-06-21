@@ -17,7 +17,7 @@ def middleware_maker(maker_id):
 		WSGI app as a result
 		"""
 		def app(env, sr):
-			"""A WSGI app takes and environment and start_response,
+			"""A WSGI app takes an environment and start_response,
 			calls the start_response, and returns an iterator of
 			results.
 			"""
