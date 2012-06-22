@@ -80,6 +80,26 @@ class ExceptionHandler(object):
 
 			return traceback.format_exc()
 
+class ParameterisedMiddleware(object):
+	"""Class decorator which allows us to write middlewares which bind
+	additional parameters to the middleware creation. e.g.:
+
+	@ParameterisedMiddleware
+	class Foo:
+		def __init__(self, app, arg):
+			...
+
+	MW = Foo(3)   # MW is a middleware, and may then be composed with an app:
+	new_app = MW(app)
+	"""
+	def __init__(self, cls):
+		self.cls = cls
+
+	def __call__(self, *args, **kwargs):
+		def MW(app):
+			return self.cls(app, *args, **kwargs)
+		return MW
+
 def compose(mwares):
 	"""This function takes a list of middlewares, and returns a
 	middleware that acts as the composition of them all.

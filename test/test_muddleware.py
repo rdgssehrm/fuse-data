@@ -83,6 +83,28 @@ class TestMuddleware(unittest.TestCase):
 
 		self.assertSequenceEqual(res, ["MW3", "MW2", "MW1"])
 
+	def test_Parameterised(self):
+		"""Test the behaviour of the 'ParameterisedMiddleware' decorator
+		"""
+		# Create a stub middleware
+		@mw.ParameterisedMiddleware
+		class TestMW(object):
+			def __init__(self, app, parm):
+				self.app = app
+				self.parm = parm
+			def __call__(self, env, sr):
+				self.app.test_parameter = self.parm
+				return self.app(env, sr)
+
+		self.app.return_value = ["Result"]
+		tmw = TestMW(205)
+		app = tmw(self.app)
+		res = app(self.env, self.sr)
+
+		self.app.assert_called_once_with(self.env, self.sr)
+		self.assertEqual(self.app.test_parameter, 205)
+		self.assertEqual(res, ["Result"])
+
 # FIXME: Add tests for the exception handler and HTTP change/caching
 # test function
 
