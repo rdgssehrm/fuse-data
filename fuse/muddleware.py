@@ -100,6 +100,40 @@ class ParameterisedMiddleware(object):
 			return self.cls(app, *args, **kwargs)
 		return MW
 
+@ParameterisedMiddleware
+class DebugLogger(object):
+	"""Implementation of a DebugLogger object
+	"""
+	def __init__(self, app, tag="", responses=False, requests=False,
+				 environment=False, resp_headers=False):
+		self.app = app
+		self.responses = responses
+		self.requests = requests
+		self.environment = environment
+		self.resp_headers = resp_headers
+		if tag != "":
+			tag += ": "
+		self.tag = tag
+
+	class LogIterator(object):
+		def __init__(self, mw, obj, tag):
+			self.obj = iter(obj)
+			self.tag = tag
+			self.mw = mw
+
+		def __iter__(self):
+			return self
+
+		def __next__(self):
+			rv = next(self.obj)
+			if self.mw.responses:
+				log.debug("%s(%s) %s", self.tag, type(rv), rv)
+			return rv
+
+	def __call__(self, environ, start_response):
+		return self.LogIterator(
+			self, self.app(environ, start_response), self.tag)
+
 def compose(mwares):
 	"""This function takes a list of middlewares, and returns a
 	middleware that acts as the composition of them all.

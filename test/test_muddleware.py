@@ -3,7 +3,7 @@
 
 import unittest
 
-from mock import Mock, ANY
+from mock import Mock, ANY, patch, call
 import wsgiref.headers
 
 import fuse.muddleware as mw
@@ -104,6 +104,27 @@ class TestMuddleware(unittest.TestCase):
 		self.app.assert_called_once_with(self.env, self.sr)
 		self.assertEqual(self.app.test_parameter, 205)
 		self.assertEqual(res, ["Result"])
+
+	@patch('fuse.muddleware.log')
+	def test_DebugLogger(self, log_object):
+		self.app.return_value = ["Some result", "Second line"]
+
+		app = mw.DebugLogger(tag="log_tag", responses=True)(self.app)
+		res = app(self.env, self.sr)
+
+		# Check that the upstream app was called properly
+		self.app.assert_called_once_with(self.env, self.sr)
+
+		# This should read all of the values in res, thus calling the
+		# log object.
+		self.assertEqual(list(res), ["Some result", "Second line"])
+
+		# We can then test the call sequence of the log object, which
+		# is the main thing we care about
+		mw.log.debug.assert_has_calls(
+			[call("%s(%s) %s", "log_tag: ", str, "Some result"),
+			 call("%s(%s) %s", "log_tag: ", str, "Second line"),
+			 ])
 
 # FIXME: Add tests for the exception handler and HTTP change/caching
 # test function
