@@ -65,7 +65,7 @@ class TestConnegTransformers(TestConnegBase):
 class TestConneg(TestConnegBase):
 	def test_ConnegBasic(self):
 		res = self.cn({"QUERY_STRING": "type=json"}, self.sr)
-		self.assertListEqual(res, ['["Sample"]'])
+		self.assertListEqual(res, [b'["Sample"]'])
 
 
 if __name__ == '__main__':

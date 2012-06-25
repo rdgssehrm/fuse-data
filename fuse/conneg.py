@@ -157,4 +157,4 @@ class JSONTransformer(Transformer):
 		Transformer.__init__(self)
 
 	def transform(self, binary, environ):
-		return [json.dumps(binary)]
+		return [json.dumps(binary).encode("utf8")]

@@ -2,6 +2,8 @@
 http://openorg.ecs.soton.ac.uk/wiki/Metering for specifications.
 """
 
+import logging
+log = logging.getLogger("api")
 import json
 
 from fuse.conneg import JSONTransformer
