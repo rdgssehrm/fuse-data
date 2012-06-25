@@ -37,13 +37,9 @@ class TestMuddleware(unittest.TestCase):
 		self.env = { }
 
 	def test_BinaryJSON(self):
-		wrap = mw.BinaryJSONWrapper(self.app)
-		res = wrap(self.env, self.sr)
-
-		self.app.assert_called_once_with(self.env, self.sr)
-		self.assertIsInstance(res, mw.BinaryJSONIterator)
-		self.assertEqual(res.binary, self.result)
-		self.assertEqual(list(res), ['["Some result"]'])
+		data = mw.BinaryJSONIterator(["some result", "more result"])
+		it = iter(data)
+		self.assertEqual(next(it), '["some result", "more result"]')
 
 	def test_AccessFunction1(self):
 		wrap = mw.AccessFunctionWrapper(self.app)

@@ -22,7 +22,6 @@ class APIWrapper(object):
 	def __init__(self, config, db, mapper):
 		mapper.wrap = muddleware.compose(
 			[conneg.Conneg,
-			 muddleware.BinaryJSONWrapper,
 			 muddleware.AccessFunctionWrapper])
 
 		mapper.prefix = "/api"

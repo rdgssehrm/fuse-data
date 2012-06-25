@@ -21,23 +21,15 @@ class StructuredResponse(object):
 
 class BinaryJSONIterator(object):
 	"""Object used to fake up a WSGI result iterator and still carry
-	around binary data.
+	around binary data. We *can't* turn this into a full middleware,
+	because it then becomes impossible to send non-JSON error
+	messages, and the whole thing gets icky quite quickly.
 	"""
 	def __init__(self, data):
 		self.binary = data
 
 	def __iter__(self):
 		return iter([json.dumps(self.binary)])
-
-class BinaryJSONWrapper(object):
-	"""Simple wrapper to convert binary data returned by a lower-level
-	function into a BinaryJSONIterator.
-	"""
-	def __init__(self, app):
-		self.app = app
-
-	def __call__(self, environ, start_response):
-		return BinaryJSONIterator(self.app(environ, start_response))
 
 class AccessFunctionWrapper(object):
 	"""This wrapper is the innermost object: It takes a function that
