@@ -32,7 +32,8 @@ class TestAPI_NoSeries(TestAPI):
 	def test_CreateSeries(self):
 		self.db.create_series = Mock(return_value=130)
 		self.api.add_series(self.req, self.res)
-		self.assertEqual(self.res.data, 130)
+		self.assertSequenceEqual(list(self.res.data), ["130"])
 
 if __name__ == '__main__':
 	unittest.main()
+
