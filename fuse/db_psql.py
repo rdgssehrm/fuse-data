@@ -138,8 +138,8 @@ class Database(object):
 					  primary key (series_id, stamp))
 					""")
 				self.db.commit()
-			except:
-				log.error("Failed to create database structure")
+			except Exception as ex:
+				log.error("Failed to create database structure", exc_info=ex)
 				self.db.rollback()
 
 			self.db.autocommit = True
