@@ -10,6 +10,8 @@ from fuse.conneg import JSONTransformer
 import fuse.muddleware as muddleware
 import fuse.conneg as conneg
 
+BJI = muddleware.BinaryJSONIterator
+
 """
 REST API structure:
 /api/series/         GET full list of series IDs, POST to add series
@@ -38,7 +40,7 @@ class APIWrapper(object):
 		"""Retrieve and return a list of all series
 		"""
 		req["transformers"] = { 'json': JSONTransformer }
-		res.data = self.db.list_series()
+		res.data = BJI(self.db.list_series())
 
 	def add_series(self, req, res):
 		req["transformers"] = { 'json': JSONTransformer }
