@@ -26,14 +26,14 @@ class TestDBCommon(unittest.TestCase):
 
 class TestDBCreateSeries(TestDBCommon):
 	def test_CreateSeries(self):
-		sid = self.db.create_series()
+		sid = self.db.create_series(datetime.timedelta(seconds=1800))
 		serlist = self.db.list_series()
 		self.assertIn(sid, serlist)
 
 class TestDBWithSeries(TestDBCommon):
 	def setUp(self):
 		TestDBCommon.setUp(self)
-		self.sid = self.db.create_series()
+		self.sid = self.db.create_series(datetime.timedelta(seconds=1800))
 
 	def test_DeleteSeries(self):
 		self.db.drop_series(self.sid)

@@ -19,11 +19,20 @@ class Database(object):
 		if ver != CURRENT_VERSION:
 			self._upgrade(ver)
 
-	def create_series(self):
+	def create_series(self,
+					  period,
+					  epoch=datetime.datetime(1970, 1, 1, tzinfo=_UTC),
+					  ts_type="point",
+					  get_limit=1000):
 		"""Create a time-series. Return the ID of the series created.
 		"""
+		self.db.commit()
 		self.db.autocommit = False
-		self._query("insert into series (uri) values ('.')")
+		self._query(
+			"""
+			insert into series (period, epoch, ts_type, get_limit)
+			values (%s, %s, %s, %s)
+			""", (period, epoch, ts_type, get_limit))
 		rv = self._query("select lastval()").fetchone()[0]
 		self.db.commit()
 		self.db.autocommit = True
@@ -46,7 +55,7 @@ class Database(object):
 			"""
 			insert into data (series_id, stamp, ingest, value)
 			values (%s, %s, %s, %s)
-			""", [sid, ts, datetime.datetime.now(_UTC), value])
+			""", (sid, ts, datetime.datetime.now(_UTC), value))
 
 	def get_values(self, sid, from_ts=None, to_ts=None):
 		"""Return a sorted iterator of (ts, value) pairs from the given series
@@ -112,7 +121,10 @@ class Database(object):
 					"""
 					create table series (
 					  id serial primary key,
-					  uri varchar unique)
+					  period interval,
+					  epoch timestamp with time zone,
+					  ts_type varchar(10),
+					  get_limit integer)
 					""")
 				cur.execute(
 					"""
