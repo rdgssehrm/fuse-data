@@ -1,0 +1,20 @@
+#!/usr/bin/python3
+
+import logging
+import logging.config
+
+import wsgiref.simple_server
+
+import fuse.config as config
+import fuse.app
+
+def main():
+	log = logging.getLogger()
+	#logging.basicConfig(level=logging.DEBUG)
+	logging.config.fileConfig("logging.conf")
+
+	srv = wsgiref.simple_server.make_server("", config.port, fuse.app.get_app())
+	srv.serve_forever()
+
+if __name__ == "__main__":
+	main()

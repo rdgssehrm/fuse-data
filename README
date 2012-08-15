@@ -5,5 +5,6 @@ A database driver (e.g. pyscopg2)
 selector -- https://github.com/lukearno/selector
 resolver
 mock -- http://www.voidspace.org.uk/python/mock/ (or python3-mock in Debian)
+requests
 
 A database (e.g. postgresql)
