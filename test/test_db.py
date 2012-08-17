@@ -24,6 +24,20 @@ class TestDBCommon(unittest.TestCase):
 		self.db._wipe()
 		db._DB = None
 
+class TestDBWithSeriesCommon(TestDBCommon):
+	def setUp(self):
+		TestDBCommon.setUp(self)
+		self.sid = self.db.create_series(datetime.timedelta(seconds=1800))
+
+class TestDBWithMultiSeriesCommon(TestDBWithSeriesCommon):
+	def setUp(self):
+		TestDBWithSeriesCommon.setUp(self)
+		self.sid2 = self.db.create_series(
+			datetime.timedelta(seconds=900),
+			ts_type="pointless")
+		self.sid3 = self.db.create_series(datetime.timedelta(seconds=600))
+
+
 class TestDBCreateSeries(TestDBCommon):
 	def test_CreateSeries(self):
 		sid = self.db.create_series(datetime.timedelta(seconds=1800))
@@ -53,11 +67,7 @@ class TestDBCreateSeries(TestDBCommon):
 		self.assertIsNone(sid)
 		self.assertEqual(len(serlist), 0)
 
-class TestDBWithSeries(TestDBCommon):
-	def setUp(self):
-		TestDBCommon.setUp(self)
-		self.sid = self.db.create_series(datetime.timedelta(seconds=1800))
-
+class TestDBWithSeries(TestDBWithSeriesCommon):
 	def test_DeleteSeries(self):
 		self.db.drop_series(self.sid)
 		serlist = self.db.list_series()
@@ -75,6 +85,38 @@ class TestDBWithSeries(TestDBCommon):
 		self.assertEqual(len(d), 1)
 		self.assertEqual(d[0][0], stamp)
 		self.assertAlmostEqual(d[0][1], 134.6)
+
+class TestDBWithMultiSeries(TestDBWithMultiSeriesCommon):
+	def test_ListSeriesByID(self):
+		serlist = self.db.list_series(sid=self.sid2)
+		self.assertCountEqual((self.sid2,), serlist)
+
+	def test_ListSeriesByIDFail(self):
+		serlist = self.db.list_series(sid=-35)
+		self.assertCountEqual((), serlist)
+
+	def test_ListSeriesByPeriodSingle(self):
+		serlist = self.db.list_series(period=datetime.timedelta(seconds=1800))
+		self.assertCountEqual((self.sid,), serlist)
+
+	def test_ListSeriesByPeriodFail(self):
+		serlist = self.db.list_series(period=datetime.timedelta(seconds=1900))
+		self.assertCountEqual((), serlist)
+
+	def test_ListSeriesByPeriodRangeTuple(self):
+		serlist = self.db.list_series(period=(datetime.timedelta(seconds=500),
+											  datetime.timedelta(seconds=1000)))
+		self.assertCountEqual((self.sid2, self.sid3), serlist)
+
+	def test_ListSeriesByPeriodRangeList(self):
+		serlist = self.db.list_series(period=[datetime.timedelta(seconds=500),
+											  datetime.timedelta(seconds=1000)])
+		self.assertCountEqual((self.sid2, self.sid3), serlist)
+
+	def test_ListSeriesByType(self):
+		serlist = self.db.list_series(ts_type="point")
+		self.assertCountEqual((self.sid, self.sid3), serlist)
+
 
 if __name__ == '__main__':
 	unittest.main()

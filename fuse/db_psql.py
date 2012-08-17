@@ -49,11 +49,36 @@ class Database(object):
 		"""
 		self._query("delete from series where id=%s", (sid,))
 
-	def list_series(self):
+	def list_series(self, sid=None, period=None, ts_type=None):
 		"""List the available time-series
 		"""
-		cur = self._query("select id from series")
-		return { r[0]: {"id": r[0]}
+		sql = "select id, period, epoch, ts_type, get_limit from series where 1=1"
+		params = []
+		if sid is not None:
+			sql += " and id=%s"
+			params.append(sid)
+		if period is not None:
+			try:
+				l = period[0:2]
+				sqladd = " and period >= %s and period < %s"
+			except TypeError:
+				l = [period]
+				sqladd = " and period = %s"
+			except IndexError:
+				l = period[0:1]
+				sqladd = " and period = %s"
+			params += l
+			sql += sqladd
+		if ts_type is not None:
+			sql += " and ts_type = %s"
+			params.append(ts_type)
+
+		cur = self._query(sql, params)
+		return { r[0]: { "id": r[0],
+						 "period": r[1],
+						 "epoch": r[2],
+						 "type": r[3],
+						 "limit": r[4], }
 				 for r in cur }
 
 	def add_value(self, sid, ts, value):
