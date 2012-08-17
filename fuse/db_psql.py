@@ -28,13 +28,19 @@ class Database(object):
 		"""
 		self.db.commit()
 		self.db.autocommit = False
-		self._query(
-			"""
-			insert into series (period, epoch, ts_type, get_limit)
-			values (%s, %s, %s, %s)
-			""", (period, epoch, ts_type, get_limit))
-		rv = self._query("select lastval()").fetchone()[0]
-		self.db.commit()
+		try:
+			self._query(
+				"""
+				insert into series (period, epoch, ts_type, get_limit)
+				values (%s, %s, %s, %s)
+				""", (period, epoch, ts_type, get_limit))
+			rv = self._query("select lastval()").fetchone()[0]
+			self.db.commit()
+		except Exception as ex:
+			self.db.rollback()
+			log.error("Series creation failed: period=%s, epoch=%s, type=%s, limit=%s", period, epoch, ts_type, get_limit, exc_info=ex)
+			rv = None
+
 		self.db.autocommit = True
 		return rv
 
