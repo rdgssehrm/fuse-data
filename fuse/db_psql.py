@@ -89,11 +89,34 @@ class Database(object):
 		return line[0] > 0
 
 	def add_value(self, sid, ts, value):
-		self._query(
-			"""
-			insert into data (series_id, stamp, ingest, value)
-			values (%s, %s, %s, %s)
-			""", (sid, ts, datetime.datetime.now(_UTC), value))
+		# FIXME: We should check for data points falling on
+		# appropriate times for the epoch/period for this data point
+
+		# FIXME: This is not an ideal interface, as we start/stop a
+		# transaction for every single data point. There should be a
+		# bulk upload interface as well. See (e.g.)
+		# http://stackoverflow.com/questions/1109061/insert-on-duplicate-update-postgresql
+		# for bulk-upload solutions.
+
+		# Ideally, we should use MERGE here, but we can't because psql
+		# doesn't support it yet. So instead, we use a predefined SQL
+		# function as found in the manual: http://www.postgresql.org/docs/current/static/plpgsql-control-structures.html#PLPGSQL-UPSERT-EXAMPLE
+		now = datetime.datetime.now(_UTC)
+		self.db.commit()
+		self.db.autocommit = False
+		try:
+			self._query("select upsert_data(%s, %s, %s, %s)",
+						(sid, ts, now, value))
+			self.db.commit()
+			rv = True
+		except Exception as ex:
+			log.error("Failed to insert/update data: id=%s, time=%s, value=%s",
+					  sid, ts, value, exc_info=ex)
+			self.db.rollback()
+			rv = False
+
+		self.db.autocommit = True
+		return rv
 
 	def get_values(self, sid, from_ts=None, to_ts=None):
 		"""Return a sorted iterator of (ts, value) pairs from the given series
@@ -117,6 +140,7 @@ class Database(object):
 		self._query("drop table data")
 		self._query("drop table series")
 		self._query("drop table version")
+		self._query("drop language plpgsql cascade")
 
 	def _db_version(self):
 		"""Check and return the current version of this DB. If the
@@ -155,6 +179,8 @@ class Database(object):
 				cur = self.db.cursor()
 				cur.execute("create table version (version integer)")
 				cur.execute("insert into version values (1)")
+				cur.execute("create language plpgsql")
+				#cur.execute("create extension if not exists plpgsql")
 				cur.execute(
 					"""
 					create table series (
@@ -175,6 +201,36 @@ class Database(object):
 					  value double precision,
 					  primary key (series_id, stamp))
 					""")
+				cur.execute(
+					"""
+					create function upsert_data(
+						sid integer,
+						datatime timestamp with time zone,
+						ingesttime timestamp with time zone,
+						datavalue double precision)
+					returns void as
+					$$
+					begin
+						loop
+							update data set ingest=ingesttime, value=datavalue
+								where series_id=sid and stamp=datatime;
+							if found then
+								return;
+							end if;
+							begin
+								insert into data (series_id, stamp,
+												  ingest, value)
+									values (sid, datatime,
+											ingesttime, datavalue);
+								return;
+							exception when unique_violation then
+							end;
+						end loop;
+					end;
+					$$
+					language plpgsql;
+					""")
+
 				self.db.commit()
 			except Exception as ex:
 				log.error("Failed to create database structure", exc_info=ex)

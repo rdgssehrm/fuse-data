@@ -80,11 +80,24 @@ class TestDBWithSeries(TestDBWithSeriesCommon):
 
 	def test_AddData(self):
 		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
-		self.db.add_value(self.sid, stamp, 134.6)
+		v = self.db.add_value(self.sid, stamp, 134.6)
 		d = list(self.db.get_values(self.sid))
+
+		self.assertTrue(v)
 		self.assertEqual(len(d), 1)
 		self.assertEqual(d[0][0], stamp)
 		self.assertAlmostEqual(d[0][1], 134.6)
+
+	def test_UpdateData(self):
+		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
+		v = self.db.add_value(self.sid, stamp, 134.6)
+		v = self.db.add_value(self.sid, stamp, 218.2)
+		d = list(self.db.get_values(self.sid))
+
+		self.assertTrue(v)
+		self.assertEqual(len(d), 1)
+		self.assertEqual(d[0][0], stamp)
+		self.assertAlmostEqual(d[0][1], 218.2)
 
 	def test_IsSeriesPositive(self):
 		self.assertTrue(self.db.is_series(self.sid))
