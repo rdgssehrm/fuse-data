@@ -81,6 +81,13 @@ class Database(object):
 						 "limit": r[4], }
 				 for r in cur }
 
+	def is_series(self, sid):
+		"""Check whether sid is a series
+		"""
+		cur = self._query("select count(id) from series where id=%s", [sid])
+		line = cur.fetchone()
+		return line[0] > 0
+
 	def add_value(self, sid, ts, value):
 		self._query(
 			"""

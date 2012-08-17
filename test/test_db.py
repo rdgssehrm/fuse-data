@@ -86,6 +86,12 @@ class TestDBWithSeries(TestDBWithSeriesCommon):
 		self.assertEqual(d[0][0], stamp)
 		self.assertAlmostEqual(d[0][1], 134.6)
 
+	def test_IsSeriesPositive(self):
+		self.assertTrue(self.db.is_series(self.sid))
+
+	def test_IsSeriesNegative(self):
+		self.assertFalse(self.db.is_series(-35))
+
 class TestDBWithMultiSeries(TestDBWithMultiSeriesCommon):
 	def test_ListSeriesByID(self):
 		serlist = self.db.list_series(sid=self.sid2)
