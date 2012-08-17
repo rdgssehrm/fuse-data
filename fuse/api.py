@@ -21,6 +21,52 @@ REST API structure:
 					 POST to add data records
 """
 
+# Helper functions
+def fail_as(res, result, message, data):
+	ellip = ""
+	if len(data) > 80:
+		ellip = "[...]"
+	log.warn("%s: '%s%s'", message, data[:80], ellip)
+	res.result = result
+	res.data = (message.encode("utf8"),)
+
+
+def get_json(req, res):
+	# Check what data type we've been passed: it should be
+	# application/json
+	# FIXME: Move this check to a method decorator
+	ct = req.get("CONTENT_TYPE", "")
+	if ct != "application/json":
+		log.warn("Incorrect content type (%s) %s given", type(ct), ct)
+
+	try:
+		clen = int(req["CONTENT_LENGTH"])
+	except ValueError:
+		clen = 0 # FIXME: We could just return HTTP 411 here "Length required"
+
+	inp = req["wsgi.input"].read(clen)
+	# FIXME: Use the Content-Encoding(?) header to work out what
+	# we should be decoding this as?
+	# FIXME: Add these checks as decorators from the muddleware
+	#  -- or just a helper function
+	try:
+		request_text = inp.decode("utf8")
+	except UnicodeDecodeError as ex:
+		fail_as(res, "400 Badly-encoded data",
+				"The request data sent was not in UTF-8", inp)
+		return None, None
+
+	try:
+		struct = json.loads(request_text)
+	except ValueError as ex:
+		fail_as(res, "400 Not readable JSON",
+				"The request data sent was not readable as JSON",
+				request_text)
+		return None, None
+
+	return struct, request_text
+
+
 class APIWrapper(object):
 	def __init__(self, config, db, mapper):
 		mapper.wrap = muddleware.compose(
@@ -40,67 +86,29 @@ class APIWrapper(object):
 	def get_series_list(self, req, res):
 		"""Retrieve and return a list of all series
 		"""
+		# FIXME: Check the query string for search parameters
 		req["transformers"] = { 'json': JSONTransformer }
 		res.data = BJI(self.db.list_series())
 
 	def add_series(self, req, res):
+		"""Add a new series (data in JSON), returning the ID of the
+		newly-created series"""
+		# FIXME: Also check the query string for parameters
 		req["transformers"] = { 'json': JSONTransformer }
-		# Check what data type we've been passed: it should be
-		# application/json
-		# FIXME: Move this check to a method decorator
-		ct = req.get("CONTENT_TYPE", "")
-		if ct != "application/json":
-			log.warn("Incorrect content type (%s) %s given", type(ct), ct)
-
-		log.info("Content type is %s", ct)
-
-		try:
-			clen = int(req["CONTENT_LENGTH"])
-		except ValueError:
-			clen = 0 # FIXME: We could just return HTTP 411 here "Length required"
-
-		log.info("Content length is %s", clen)
-
-		inp = req["wsgi.input"].read(clen)
-		# FIXME: Use the Content-Encoding(?) header to work out what
-		# we should be decoding this as?
-		# FIXME: Add these checks as decorators from the muddleware
-		#  -- or just a helper function
-		try:
-			request_text = inp.decode("utf8")
-		except UnicodeDecodeError as ex:
-			ellip = ""
-			if len(inp) > 80:
-				ellip = "[...]"
-			log.warn("Passed incorrectly-encoded data: '%s%s'", inp[:80], ellip)
-			res.result = "400 Badly-encoded data"
-			res.data = (b"The request data sent was not in UTF-8",)
-			return
-
-		log.info("Content is", request_text)
-
-		try:
-			desc = json.loads(request_text)
-		except ValueError as ex:
-			ellip = ""
-			if len(request_text) > 80:
-				ellip = "[...]"
-			log.warn("Bad JSON input in add_series: '%s%s'", request_text[:80], ellip)
-			res.result = "400 Not readable JSON"
-			res.data = (b"The request data sent was not readable as JSON",)
-			return
+		desc, request_text = get_json(req, res)
+		if desc is None: return
 
 		log.debug(desc)
 		if not isinstance(desc, dict):
-			log.warn("Data was not a dictionary: '%s'", request_text[:80])
-			res.result = "400 Bad request"
-			res.data = (b"The request data was not a JSON dictionary",)
+			fail_as(res, "400 Bad request",
+					"The request data was not a JSON dictionary",
+					request_text)
 			return
 
 		if "period" not in desc:
-			log.warn("Missing required parameter: period")
-			res.result = "400 Missing parameter"
-			res.data = (b"The request data was missing a required parameter: period",)
+			fail_as(res, "400 Missing parameter",
+					"The request data was missing a required parameter",
+					"period")
 			return
 
 		# FIXME: Parse and accept other options here
