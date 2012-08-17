@@ -30,6 +30,29 @@ class TestDBCreateSeries(TestDBCommon):
 		serlist = self.db.list_series()
 		self.assertIn(sid, serlist)
 
+	def test_CreateSeriesParams(self):
+		sid = self.db.create_series(
+			datetime.timedelta(seconds=1000),
+			epoch=datetime.datetime(1970, 1, 1, 0, 8, 20, tzinfo=_UTC),
+			ts_type="test",
+			get_limit=12)
+		serlist = self.db.list_series()
+		self.assertIn(sid, serlist)
+
+	def test_CreateSeriesWithFailure1(self):
+		sid = self.db.create_series(
+			datetime.timedelta(seconds=1800),
+			epoch="colin")
+		serlist = self.db.list_series()
+		self.assertIsNone(sid)
+		self.assertEqual(len(serlist), 0)
+
+	def test_CreateSeriesWithFailure2(self):
+		sid = self.db.create_series("colin")
+		serlist = self.db.list_series()
+		self.assertIsNone(sid)
+		self.assertEqual(len(serlist), 0)
+
 class TestDBWithSeries(TestDBCommon):
 	def setUp(self):
 		TestDBCommon.setUp(self)
