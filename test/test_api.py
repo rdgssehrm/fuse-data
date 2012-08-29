@@ -29,12 +29,12 @@ class TestAPI_NoSeries(TestAPI):
 	def test_GetEmptySeries(self):
 		self.db.list_series = Mock(return_value=[150])
 		self.api.get_series_list(self.req, self.res)
-		self.assertSequenceEqual(list(self.res.data), ['[150]'])
+		self.assertSequenceEqual(list(self.res.data), [b'[150]'])
 
 	def test_CreateSeries(self):
 		self.db.create_series = Mock(return_value=130)
 		self.api.add_series(self.req, self.res)
-		self.assertSequenceEqual(list(self.res.data), ["130"])
+		self.assertSequenceEqual(list(self.res.data), [b"130"])
 
 
 class TestAPI_FailAs(unittest.TestCase):

@@ -39,7 +39,7 @@ class TestMuddleware(unittest.TestCase):
 	def test_BinaryJSON(self):
 		data = mw.BinaryJSONIterator(["some result", "more result"])
 		it = iter(data)
-		self.assertEqual(next(it), '["some result", "more result"]')
+		self.assertEqual(next(it), b'["some result", "more result"]')
 
 	def test_AccessFunction1(self):
 		wrap = mw.AccessFunctionWrapper(self.app)

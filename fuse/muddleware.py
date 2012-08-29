@@ -29,7 +29,7 @@ class BinaryJSONIterator(object):
 		self.binary = data
 
 	def __iter__(self):
-		return iter([json.dumps(self.binary)])
+		return iter([json.dumps(self.binary).encode("utf8")])
 
 class AccessFunctionWrapper(object):
 	"""This wrapper is the innermost object: It takes a function that
