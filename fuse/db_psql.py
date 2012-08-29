@@ -36,7 +36,7 @@ class Database(object):
 				""", (period, epoch, ts_type, get_limit))
 			rv = self._query("select lastval()").fetchone()[0]
 			self.db.commit()
-		except Exception as ex:
+		except psycopg2.DatabaseError as ex:
 			self.db.rollback()
 			log.error("Series creation failed: period=%s, epoch=%s, type=%s, limit=%s", period, epoch, ts_type, get_limit, exc_info=ex)
 			rv = None
@@ -109,7 +109,7 @@ class Database(object):
 						(sid, ts, now, value))
 			self.db.commit()
 			rv = True
-		except Exception as ex:
+		except psycopg2.DatabaseError as ex:
 			log.error("Failed to insert/update data: id=%s, time=%s, value=%s",
 					  sid, ts, value, exc_info=ex)
 			self.db.rollback()
@@ -232,7 +232,7 @@ class Database(object):
 					""")
 
 				self.db.commit()
-			except Exception as ex:
+			except psycopg2.DatabaseError as ex:
 				log.error("Failed to create database structure", exc_info=ex)
 				self.db.rollback()
 
