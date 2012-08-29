@@ -43,6 +43,8 @@ def get_json(req, res):
 		clen = int(req["CONTENT_LENGTH"])
 	except ValueError:
 		clen = 0 # FIXME: We could just return HTTP 411 here "Length required"
+	except KeyError:
+		clen = 0 # FIXME: We could just return HTTP 411 here "Length required"
 
 	inp = req["wsgi.input"].read(clen)
 	# FIXME: Use the Content-Encoding(?) header to work out what
