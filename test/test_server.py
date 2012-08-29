@@ -1,4 +1,6 @@
-"""High-level / integration testing
+"""High-level / integration testing. This should not mock out
+anything, but instead test the full end-to-end operation of the
+server.
 """
 
 import time
@@ -9,7 +11,6 @@ import json
 import datetime
 import wsgiref.simple_server
 
-from mock import Mock
 import requests
 
 import test.test_config as config
