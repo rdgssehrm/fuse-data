@@ -88,6 +88,13 @@ class TestDBWithSeries(TestDBWithSeriesCommon):
 		self.assertEqual(d[0][0], stamp)
 		self.assertAlmostEqual(d[0][1], 134.6)
 
+	def test_AddData_FailDataRange(self):
+		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
+		v = self.db.add_value(self.sid, stamp, "James di Griz")
+		self.assertFalse(v)
+		d = list(self.db.get_values(self.sid))
+		self.assertEqual(len(d), 0)
+
 	def test_UpdateData(self):
 		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
 		v = self.db.add_value(self.sid, stamp, 134.6)
