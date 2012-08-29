@@ -6,6 +6,7 @@ import os
 import unittest
 import multiprocessing
 import json
+import datetime
 import wsgiref.simple_server
 
 from mock import Mock
@@ -15,7 +16,9 @@ import test.test_config as config
 import fuse.app
 import fuse.db
 
-class TestServer(unittest.TestCase):
+_P15 = datetime.timezone(datetime.timedelta(0, 900))
+
+class TestServer_Base(unittest.TestCase):
 	def setUp(self):
 		def gen_server():
 			srv = wsgiref.simple_server.make_server(
@@ -34,6 +37,8 @@ class TestServer(unittest.TestCase):
 		self.db._wipe()
 		fuse.db._DB = None
 
+
+class TestServer_WithoutSeries(TestServer_Base):
 	def test_CreateSeries(self):
 		series = { "period": 1800,
 				   "type": "point",
@@ -55,6 +60,73 @@ class TestServer(unittest.TestCase):
 		# This text is not UTF-8. Not in the slightest.
 		
 		self.assertEqual(r.status_code, requests.codes.bad_request)
+
+
+class TestServer_WithSeries_Base(TestServer_Base):
+	def setUp(self):
+		TestServer_Base.setUp(self)
+		self.sid = self.db.create_series(datetime.timedelta(seconds=1800))
+
+	def tearDown(self):
+		self.db.drop_series(self.sid)
+		TestServer_Base.tearDown(self)
+
+
+class TestServer_WithSeries(TestServer_WithSeries_Base):
+	def test_AddData_BadJSON(self):
+		r = requests.post(self.base_uri + "series/" + str(self.sid) + "/data/",
+						  data="Ceci n'est pas un string".encode("utf8"))
+		self.assertEqual(r.status_code, requests.codes.bad_request)
+
+	def test_AddData_WrongStructure(self):
+		r = requests.post(self.base_uri + "series/" + str(self.sid) + "/data/",
+						  data='{"foo":12}'.encode("utf8"))
+		self.assertEqual(r.status_code, requests.codes.bad_request)
+
+	def test_AddData_WrongType(self):
+		r = requests.post(self.base_uri + "series/" + str(self.sid) + "/data/",
+						  data='[["2012-08-28T12:00:00+0015", "Thirty-three"]]'.encode("utf8"))
+		self.assertEqual(r.status_code, requests.codes.partial_content)
+		self.assertSequenceEqual(r.json, [["2012-08-28T12:00:00.000000+0015", "Thirty-three"]])
+
+	def test_AddData_NonSeries(self):
+		r = requests.post(self.base_uri + "series/" + str(self.sid+1) + "/data/",
+						  data='[["2012-08-28T12:00:00+0015", 33]]'.encode("utf8"))
+		self.assertEqual(r.status_code, requests.codes.not_found)
+
+	def test_AddData_PartialWrongType(self):
+		r = requests.post(self.base_uri + "series/" + str(self.sid) + "/data/",
+						  data='[["2012-08-28T12:00:00+0015", "Thirty-three"],'
+								'["2012-08-28T12:30:00+0015", 35]]'.encode("utf8"))
+		self.assertEqual(r.status_code, requests.codes.partial_content)
+		self.assertSequenceEqual(
+			r.json,
+			[["2012-08-28T12:00:00.000000+0015", "Thirty-three"]])
+		v = self.db.get_values(self.sid)
+		self.assertSequenceEqual(
+			[(ts.astimezone(_P15), val) for ts, val in v],
+			[(datetime.datetime(2012, 8, 28, 12, 30, 0, 0, _P15), 35)])
+
+	def test_AddData_Single(self):
+		r = requests.post(self.base_uri + "series/" + str(self.sid) + "/data/",
+						  data='[["2012-08-28T12:00:00+0015", 33]]'.encode("utf8"))
+		self.assertEqual(r.status_code, requests.codes.ok)
+		v = self.db.get_values(self.sid)
+		self.assertSequenceEqual(
+			[(ts.astimezone(_P15), val) for ts, val in v],
+			[(datetime.datetime(2012, 8, 28, 12, 0, 0, 0, _P15), 33)])
+
+	def test_AddData_Multiple(self):
+		r = requests.post(self.base_uri + "series/" + str(self.sid) + "/data/",
+						  data='[["2012-08-28T12:00:00+0015", 33],'
+								'["2012-08-28T12:30:00+0015", 37]]'.encode("utf8"))
+		self.assertEqual(r.status_code, requests.codes.ok)
+		v = self.db.get_values(self.sid)
+		self.assertSequenceEqual(
+			[(ts.astimezone(_P15), val) for ts, val in v],
+			[(datetime.datetime(2012, 8, 28, 12, 0, 0, 0, _P15), 33),
+			 (datetime.datetime(2012, 8, 28, 12, 30, 0, 0, _P15), 37)])
+
 
 if __name__ == '__main__':
 	unittest.main()

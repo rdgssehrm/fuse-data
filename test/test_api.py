@@ -4,7 +4,7 @@
 import unittest
 import datetime
 
-from mock import Mock
+from mock import Mock, ANY, call
 
 import test.test_config as config
 import fuse.api
@@ -37,6 +37,56 @@ class TestAPI_NoSeries(TestAPI):
 		self.api.add_series(self.req, self.res)
 		self.assertSequenceEqual(list(self.res.data), [b"130"])
 
+
+class TestAPI_WithSeries(TestAPI):
+	def setUp(self):
+		TestAPI.setUp(self)
+		self.req["wsgiorg.routing_args"] = [None, {"series_id": "19"}]
+		self.db.is_series.return_value = True
+
+	def _set_input(self, txt):
+		"""Helper function to set the text in the request.
+		"""
+		self.input.read.return_value = txt
+		self.req["CONTENT_LENGTH"] = len(txt)
+
+	def test_AddData_NotSeries(self):
+		self.db.is_series.return_value = False
+		self.api.add_data(self.req, self.res)
+		self.assertEqual(self.res.result, "404 Not found")
+
+	def test_AddData_NotArray1(self):
+		self._set_input(b'{"foo":"bar"}')
+		self.api.add_data(self.req, self.res)
+		self.assertEqual(self.res.result, "400 Bad request")
+
+	def test_AddData_NotArray2(self):
+		self._set_input(b'"This is a string"')
+		self.api.add_data(self.req, self.res)
+		self.assertEqual(self.res.result, "400 Bad request")
+
+	def test_AddData_BadJSON(self):
+		self._set_input(b"Ceci n'est pas un string")
+		self.api.add_data(self.req, self.res)
+		fuse.api.log.warn.assert_called_once_with(ANY, ANY, "Ceci n'est pas un string", "")
+		self.assertEqual(self.res.result, "400 Not readable JSON")
+
+	def test_AddData_Single(self):
+		self._set_input(b'[["2012-08-28T12:00:00+0015", 42]]')
+		self.api.add_data(self.req, self.res)
+		self.db.add_value.assert_called_once_with(
+			19, datetime.datetime(2012, 8, 28, 12, 0, 0, 0, _P15), 42)
+		self.assertEqual(self.res.data.binary, [])
+
+	def test_AddData_Multiple(self):
+		self._set_input(b'[["2012-08-28T13:00:00+0015", 42],'
+						b'["2012-08-28T13:30:00+0015", 28]]')
+		self.api.add_data(self.req, self.res)
+		self.db.add_value.assert_has_calls(
+			[call(19, datetime.datetime(2012, 8, 28, 13, 0, 0, 0, _P15), 42),
+			 call(19, datetime.datetime(2012, 8, 28, 13, 30, 0, 0, _P15), 28)],
+			any_order=True)
+		self.assertEqual(self.res.data.binary, [])
 
 class TestAPI_FailAs(unittest.TestCase):
 	def setUp(self):

@@ -15,10 +15,11 @@ BJI = muddleware.BinaryJSONIterator
 
 """
 REST API structure:
-/api/series/         GET full list of series IDs, POST to add series
-    {seriesid}/      GET for series metadata or data,
-	                 PUT to alter series metadata,
-					 POST to add data records
+/api/series/        GET full list of series IDs, POST to add series
+    {seriesid}/     GET for series metadata,
+	                PUT to alter series metadata,
+		data/		GET for series data,
+					POST to add/modify data records
 """
 
 # Helper functions
@@ -95,6 +96,9 @@ class APIWrapper(object):
 				   GET=self.get_series_info,
 				   PUT=self.alter_series,
 				   POST=self.add_data)
+		mapper.add("/series/{series_id:digits}/data[/]",
+				   GET=self.get_data,
+				   POST=self.add_data)
 		self.db = db
 
 	def get_series_list(self, req, res):
@@ -138,20 +142,40 @@ class APIWrapper(object):
 	def alter_series(self, req, res):
 		pass
 
-	def add_data(self, req, res):
+	def get_data(self, req, res):
 		pass
 
-#		sid = int(req['wsgiorg.routing_args'][1]['series_id'])
-#		tuner = _lazy_get_tuner(tid)
-#		if tuner is None:
-#			res.result = "404 Not found"
-#			res.data = "Not found"
-#		else:
-#			res.headers["Last-Modified"] = time.strftime(muddleware.RFC_2822_DATE,
-#														 time.gmtime(tuner.last_update))
-#			if muddleware.change_test(req, tuner.last_update):
-#				res.data = tuner.get_data()
-#			else:
-#				res.result = "304 Not changed"
-#				res.data = "Not changed"
+	def add_data(self, req, res):
+		"""Add data to a series. Data format is an array of (time,
+		value) tuple.
+		"""
+		req["transformers"] = { 'json': JSONTransformer }
+		sid = int(req["wsgiorg.routing_args"][1]["series_id"])
+		# Check the series ID matches an existing series
+		if not self.db.is_series(sid):
+			fail_as(res, "404 Not found", "Series not found", str(sid))
+			return
 
+		desc, request_text = get_json(req, res)
+		if desc is None: return
+
+		if not isinstance(desc, list):
+			fail_as(res, "400 Bad request",
+					"The request data was not a JSON array",
+					request_text)
+			return
+
+		errors = []
+		for line in desc:
+			try:
+				ts, value = line
+				ts = parse_timestamp(ts)
+				rv = self.db.add_value(sid, ts, value)
+			except ValueError:
+				rv = False
+
+			if not rv:
+				res.result = "206 Partial update"
+				errors.append([ts.strftime("%Y-%m-%dT%H:%M:%S.%f%z"), value])
+
+		res.data = BJI(errors)
