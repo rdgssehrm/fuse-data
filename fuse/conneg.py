@@ -73,8 +73,7 @@ class Conneg(object):
 		# data) that we can process further
 		if hasattr(data, "binary"):
 			data = state.transformer.transform(data.binary, environ)
-		else:
-			raise Exception("Ugh: passed a raw string only -- not implemented yet")
+		# If not, we simply pass the data straight through
 
 		# Render the result
 		return data
