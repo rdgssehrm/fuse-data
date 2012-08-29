@@ -69,6 +69,18 @@ def get_json(req, res):
 	return struct, request_text
 
 
+def parse_timestamp(ts):
+	# FIXME: Allow TZ-free input (under protest) as well.
+	for fmt in (#"%Y-%m-%dT%H:%M:%S",
+				#"%Y-%m-%dT%H:%M:%S.%f",
+				"%Y-%m-%dT%H:%M:%S%z",
+				"%Y-%m-%dT%H:%M:%S.%f%z"):
+		try:
+			return datetime.datetime.strptime(ts, fmt)
+		except ValueError:
+			pass
+	raise ValueError("time data '{0}' cannot be parsed".format(ts))
+
 class APIWrapper(object):
 	def __init__(self, config, db, mapper):
 		mapper.wrap = muddleware.compose(

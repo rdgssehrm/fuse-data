@@ -10,6 +10,7 @@ import test.test_config as config
 import fuse.api
 
 _UTC = datetime.timezone.utc
+_P15 = datetime.timezone(datetime.timedelta(0, 900))
 
 class TestAPI(unittest.TestCase):
 	def setUp(self):
@@ -89,6 +90,19 @@ class TestAPI_GetJSON(TestAPI):
 	def test_GetJSON_OK(self):
 		r = fuse.api.get_json(self.req, self.res)
 		self.assertSequenceEqual(r, [{"period": 1800}, '{"period":1800}'])
+
+class TestAPI_ParseTimestamp(TestAPI):
+	def test_SuccessWithFractions(self):
+		r = fuse.api.parse_timestamp("2012-08-28T12:00:13.546+0015")
+		self.assertEqual(r, datetime.datetime(2012, 8, 28, 12, 0, 13, 546000, _P15))
+
+	def test_Success(self):
+		r = fuse.api.parse_timestamp("2012-08-28T15:00:13+0015")
+		self.assertEqual(r, datetime.datetime(2012, 8, 28, 15, 0, 13, 0, _P15))
+
+	def test_BadFormat(self):
+		with self.assertRaises(ValueError):
+			fuse.api.parse_timestamp("Ceci n'est pas un horloge")
 
 if __name__ == '__main__':
 	unittest.main()
