@@ -116,7 +116,6 @@ class APIWrapper(object):
 		desc, request_text = get_json(req, res)
 		if desc is None: return
 
-		log.debug(desc)
 		if not isinstance(desc, dict):
 			fail_as(res, "400 Bad request",
 					"The request data was not a JSON dictionary",
