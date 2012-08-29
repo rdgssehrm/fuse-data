@@ -70,7 +70,7 @@ class ExceptionHandler(object):
 			for l in traceback.format_exc().split("\n"):
 				log.error("Exception: %s", l)
 
-			return traceback.format_exc().encode("utf8")
+			return [traceback.format_exc().encode("utf8")]
 
 class ParameterisedMiddleware(object):
 	"""Class decorator which allows us to write middlewares which bind
