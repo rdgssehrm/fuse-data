@@ -27,10 +27,22 @@ class TestAPI(unittest.TestCase):
 
 
 class TestAPI_NoSeries(TestAPI):
-	def test_GetEmptySeries(self):
-		self.db.list_series = Mock(return_value=[150])
+	def test_GetFullSeriesList(self):
+		self.db.list_series = Mock(return_value={
+			150: { "id": 150,
+				   "period": 900,
+				   "epoch": datetime.datetime(2012, 8, 28, 16, 30, 0, 0, _P15),
+				   "type": "period",
+				   "limit": 1000
+				   }})
 		self.api.get_series_list(self.req, self.res)
-		self.assertSequenceEqual(list(self.res.data), [b'[150]'])
+		# This test is dependent on the serialisation order of the
+		# JSON library, and may fail
+		self.assertSequenceEqual(
+			list(self.res.data),
+			[b'{"150": {"limit": 1000, '
+			 b'"epoch": "2012-08-28T16:30:00.000000+0015", "type": "period", '
+			 b'"id": 150, "period": 900}}'])
 
 	def test_CreateSeries(self):
 		self.db.create_series = Mock(return_value=130)
