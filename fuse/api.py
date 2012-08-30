@@ -13,6 +13,7 @@ import fuse.conneg as conneg
 
 BJI = muddleware.BinaryJSONIterator
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
+STD_TRANSFORMERS = { 'json': JSONTransformer }
 
 """
 REST API structure:
@@ -107,14 +108,14 @@ class APIWrapper(object):
 		"""Retrieve and return a list of all series
 		"""
 		# FIXME: Check the query string for search parameters
-		req["transformers"] = { 'json': JSONTransformer }
+		req["transformers"] = STD_TRANSFORMERS
 		res.data = BJI(self.db.list_series())
 
 	def add_series(self, req, res):
 		"""Add a new series (data in JSON), returning the ID of the
 		newly-created series"""
 		# FIXME: Also check the query string for parameters
-		req["transformers"] = { 'json': JSONTransformer }
+		req["transformers"] = STD_TRANSFORMERS
 		desc, request_text = get_json(req, res)
 		if desc is None: return
 
@@ -139,7 +140,7 @@ class APIWrapper(object):
 
 	def get_series_info(self, req, res):
 		"""Retrieve information for a single series"""
-		req["transformers"] = { 'json': JSONTransformer }
+		req["transformers"] = STD_TRANSFORMERS
 		sid = int(req["wsgiorg.routing_args"][1]["series_id"])
 		if not self.db.is_series(sid):
 			fail_as(res, "404 Not found", "Series not found", str(sid))
@@ -157,7 +158,7 @@ class APIWrapper(object):
 		"""Add data to a series. Data format is an array of (time,
 		value) tuple.
 		"""
-		req["transformers"] = { 'json': JSONTransformer }
+		req["transformers"] = STD_TRANSFORMERS
 		sid = int(req["wsgiorg.routing_args"][1]["series_id"])
 		# Check the series ID matches an existing series
 		if not self.db.is_series(sid):
