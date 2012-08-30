@@ -138,7 +138,14 @@ class APIWrapper(object):
 			)
 
 	def get_series_info(self, req, res):
-		pass
+		"""Retrieve information for a single series"""
+		req["transformers"] = { 'json': JSONTransformer }
+		sid = int(req["wsgiorg.routing_args"][1]["series_id"])
+		if not self.db.is_series(sid):
+			fail_as(res, "404 Not found", "Series not found", str(sid))
+			return
+
+		res.data = BJI(self.db.list_series(sid=sid))
 
 	def alter_series(self, req, res):
 		pass

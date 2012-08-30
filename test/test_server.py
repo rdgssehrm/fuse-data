@@ -128,6 +128,15 @@ class TestServer_WithSeries(TestServer_WithSeries_Base):
 			[(datetime.datetime(2012, 8, 28, 12, 0, 0, 0, _P15), 33),
 			 (datetime.datetime(2012, 8, 28, 12, 30, 0, 0, _P15), 37)])
 
+	def test_GetSeries_NonSeries(self):
+		r = requests.get(self.base_uri + "series/" + str(self.sid+1))
+		self.assertEqual(r.status_code, requests.codes.not_found)
+
+	def test_GetSeries(self):
+		r = requests.get(self.base_uri + "series/" + str(self.sid))
+		self.assertEqual(r.status_code, requests.codes.ok)
+		#self.assertEqual(r.json, {})
+
 
 if __name__ == '__main__':
 	unittest.main()

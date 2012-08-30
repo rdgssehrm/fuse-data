@@ -50,6 +50,8 @@ class TestAPI_WithSeries(TestAPI):
 		self.input.read.return_value = txt
 		self.req["CONTENT_LENGTH"] = len(txt)
 
+
+class TestAPI_AddData(TestAPI_WithSeries):
 	def test_AddData_NotSeries(self):
 		self.db.is_series.return_value = False
 		self.api.add_data(self.req, self.res)
@@ -87,6 +89,18 @@ class TestAPI_WithSeries(TestAPI):
 			 call(19, datetime.datetime(2012, 8, 28, 13, 30, 0, 0, _P15), 28)],
 			any_order=True)
 		self.assertEqual(self.res.data.binary, [])
+
+
+class TestAPI_GetSeriesInfo(TestAPI_WithSeries):
+	def test_GetInfo_NotSeries(self):
+		self.db.is_series.return_value = False
+		self.api.get_series_info(self.req, self.res)
+		self.assertEqual(self.res.result.split()[0], "404")
+
+	def test_GetInfo_Series(self):
+		self.api.get_series_info(self.req, self.res)
+		self.db.list_series.assert_called_once_with(sid=19)
+
 
 class TestAPI_FailAs(unittest.TestCase):
 	def setUp(self):
