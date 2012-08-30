@@ -12,12 +12,42 @@ from wsgiref.headers import Headers
 
 log = logging.getLogger("muddleware")
 RFC_2822_DATE = "%a, %d %b %Y %H:%M:%S +0000"
+ISO_8601_DATE = "%Y-%m-%dT%H:%M:%S.%f%z"
 
 class StructuredResponse(object):
 	def __init__(self, headers):
 		self.headers = Headers(headers)
 		self.result = "200 OK"
 		self.data = None
+
+class JSONDateEncoder(json.JSONEncoder):
+	"""Date encoder for JSON. Allows passing datetime objects and
+	timedelta objects directly to the JSON code, and it will render
+	them using the standardised ISO 8601 format above.
+
+	Note that the interval serialisation does not actually meet the
+	ISO 8601 standard fully, as it doesn't specify the leading Y or M
+	fields, and so the D field is not normalised. However, dealing
+	with months is a nasty thing, and I'm not going to do it here
+	(because it's not supported by datetime.timedelta).
+	"""
+	def default(self, obj):
+		try:
+			return obj.strftime(ISO_8601_DATE)
+		except AttributeError:
+			pass
+
+		try:
+			secs = obj.seconds
+			mins = secs // 60
+			secs = secs % 60
+			hrs = mins // 60
+			mins = mins % 60
+			return "P{0.days}DT{1}H{2}M{3}.{0.microseconds:06d}S".format(obj, hrs, mins, secs)
+		except AttributeError:
+			pass
+
+		return json.JSONEncoder.default(self, obj)
 
 class BinaryJSONIterator(object):
 	"""Object used to fake up a WSGI result iterator and still carry
@@ -29,7 +59,7 @@ class BinaryJSONIterator(object):
 		self.binary = data
 
 	def __iter__(self):
-		return iter([json.dumps(self.binary).encode("utf8")])
+		return iter([json.dumps(self.binary, cls=JSONDateEncoder).encode("utf8")])
 
 class AccessFunctionWrapper(object):
 	"""This wrapper is the innermost object: It takes a function that

@@ -26,6 +26,8 @@ returned.
 import logging
 import json
 
+import fuse.muddleware as muddleware
+
 log = logging.getLogger()
 
 class _State(object):
@@ -156,4 +158,4 @@ class JSONTransformer(Transformer):
 		Transformer.__init__(self)
 
 	def transform(self, binary, environ):
-		return [json.dumps(binary).encode("utf8")]
+		return [json.dumps(binary, cls=muddleware.JSONDateEncoder).encode("utf8")]

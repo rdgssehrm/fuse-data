@@ -2,12 +2,15 @@
 """
 
 import unittest
+import json
+import datetime
 
 from mock import Mock, ANY, patch, call
 import wsgiref.headers
 
 import fuse.muddleware as mw
 
+_P15 = datetime.timezone(datetime.timedelta(0, 900))
 
 def middleware_maker(maker_id):
 	"""Function which returns WSGI middleware stubs
@@ -35,6 +38,18 @@ class TestMuddleware(unittest.TestCase):
 		self.app = Mock(return_value=self.result)
 		self.sr = Mock()
 		self.env = { }
+
+	def test_JSONDateEncoder_Passthrough(self):
+		res = json.dumps([45], cls=mw.JSONDateEncoder)
+		self.assertEqual(res, "[45]")
+
+	def testJSONDateEncoder_Date(self):
+		res = json.dumps([datetime.datetime(2012, 8, 28, 9, 12, 15, 0, _P15)], cls=mw.JSONDateEncoder)
+		self.assertEqual(res, '["2012-08-28T09:12:15.000000+0015"]')
+
+	def testJSONDateEncoder_Interval(self):
+		res = json.dumps([datetime.timedelta(54, 8000, 363)], cls=mw.JSONDateEncoder)
+		self.assertEqual(res, '["P54DT2H13M20.000363S"]')
 
 	def test_BinaryJSON(self):
 		data = mw.BinaryJSONIterator(["some result", "more result"])
