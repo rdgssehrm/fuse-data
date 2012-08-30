@@ -12,6 +12,7 @@ import fuse.muddleware as muddleware
 import fuse.conneg as conneg
 
 BJI = muddleware.BinaryJSONIterator
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 
 """
 REST API structure:
@@ -72,10 +73,11 @@ def get_json(req, res):
 
 def parse_timestamp(ts):
 	# FIXME: Allow TZ-free input (under protest) as well.
-	for fmt in (#"%Y-%m-%dT%H:%M:%S",
-				#"%Y-%m-%dT%H:%M:%S.%f",
+	for fmt in (DATE_FORMAT,
 				"%Y-%m-%dT%H:%M:%S%z",
-				"%Y-%m-%dT%H:%M:%S.%f%z"):
+				#"%Y-%m-%dT%H:%M:%S",
+				#"%Y-%m-%dT%H:%M:%S.%f"
+				):
 		try:
 			return datetime.datetime.strptime(ts, fmt)
 		except ValueError:
@@ -175,6 +177,6 @@ class APIWrapper(object):
 
 			if not rv:
 				res.result = "206 Partial update"
-				errors.append([ts.strftime("%Y-%m-%dT%H:%M:%S.%f%z"), value])
+				errors.append([ts.strftime(DATE_FORMAT), value])
 
 		res.data = BJI(errors)
