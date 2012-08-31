@@ -6,6 +6,7 @@ import logging
 log = logging.getLogger("api")
 import json
 import datetime
+import urllib.parse
 
 from fuse.conneg import JSONTransformer
 import fuse.muddleware as muddleware
@@ -152,7 +153,42 @@ class APIWrapper(object):
 		pass
 
 	def get_data(self, req, res):
-		pass
+		"""Retrieve data from a series, filtered by date range, and
+		(optionally) processed with temporal quanta and
+		min/max/mean/stdev filters.
+		"""
+		req["transformers"] = STD_TRANSFORMERS
+		sid = int(req["wsgiorg.routing_args"][1]["series_id"])
+		if not self.db.is_series(sid):
+			fail_as(res, "404 Not found", "Series not found", str(sid))
+			return
+
+		kwargs = {}
+		# Get query-string arguments
+		try:
+			qstring = urllib.parse.parse_qs(req["QUERY_STRING"])
+		except KeyError:
+			qstring = {}
+		# Sanitise parameters
+		for k, v in qstring.items():
+			lk = k.lower()
+			if lk == "startdate":
+				try:
+					kwargs["from_ts"] = parse_timestamp(v[0])
+				except ValueError:
+					fail_as(res, "400 Unparsable parameter",
+							"Start date was not parsable", v[0])
+			if lk == "enddate":
+				try:
+					kwargs["to_ts"] = parse_timestamp(v[0])
+				except ValueError:
+					fail_as(res, "400 Unparsable parameter",
+							"End date was not parsable", v[0])
+			# FIXME: Further processing of other parameters here.
+			# No parameter should be passed unvalidated or without a
+			# definite key.
+
+		res.data = BJI(list(self.db.get_values(sid, **kwargs)))
 
 	def add_data(self, req, res):
 		"""Add data to a series. Data format is an array of (time,

@@ -103,6 +103,69 @@ class TestAPI_AddData(TestAPI_WithSeries):
 		self.assertEqual(self.res.data.binary, [])
 
 
+class TestAPI_WithSeriesAndData(TestAPI_WithSeries):
+	def setUp(self):
+		TestAPI_WithSeries.setUp(self)
+		d = datetime.timedelta(0, 1800)
+		bd = datetime.datetime(2012, 8, 28, 12, 0, 0, 0, _P15)
+		self.dataset = [
+			(bd, 33), (bd+d, 35.5), (bd+d*2, 34.0), (bd+d*3, 31.9),
+			(bd+d*4, 33), (bd+d*5, 35.5), (bd+d*6, 34.0), (bd+d*7, 31.9),
+			]
+		self.db.get_values.return_value = iter(self.dataset)
+
+	def testAPI_GetSeriesData_NoFilter(self):
+		self.api.get_data(self.req, self.res)
+		self.db.get_values.assert_called_once_with(19)
+		self.assertCountEqual(list(self.res.data.binary), self.dataset)
+
+	def testAPI_GetSeriesData_BadSeries(self):
+		self.db.is_series.return_value = False
+		self.api.get_data(self.req, self.res)
+		self.assertEqual(self.res.result.split()[0], "404")
+
+	def testAPI_GetSeriesData_UnknownParam(self):
+		self.req["QUERY_STRING"] = "captain=Nemo"
+		self.api.get_data(self.req, self.res)
+		# We should ignore the string and return the original data set
+		self.db.get_values.assert_called_once_with(19)
+		self.assertCountEqual(list(self.res.data.binary), self.dataset)
+
+	def testAPI_GetSeriesData_BadParam1(self):
+		self.req["QUERY_STRING"] = "startDate=tomorrow"
+		with self.assertRaises(ValueError):
+			self.api.get_data(self.req, self.res)
+
+	def testAPI_GetSeriesData_BadParam2(self):
+		self.req["QUERY_STRING"] = "endDate=tomorrow"
+		with self.assertRaises(ValueError):
+			self.api.get_data(self.req, self.res)
+
+	def testAPI_GetSeriesData_StartOnly(self):
+		self.req["QUERY_STRING"] = "STARTDATE=2012-08-28T13:30:00%2b0000"
+		self.api.get_data(self.req, self.res)
+		self.db.get_values.assert_called_once_with(
+			19,
+			from_ts=datetime.datetime(2012, 8, 28, 13, 30, 0, 0, datetime.timezone.utc))
+		self.assertCountEqual(list(self.res.data.binary), self.dataset)
+
+	def testAPI_GetSeriesData_EndOnly(self):
+		self.req["QUERY_STRING"] = "eNdDaTe=2012-08-28T13:30:00%2b0000"
+		self.api.get_data(self.req, self.res)
+		self.db.get_values.assert_called_once_with(
+			19,
+			to_ts=datetime.datetime(2012, 8, 28, 13, 30, 0, 0, datetime.timezone.utc))
+		self.assertCountEqual(list(self.res.data.binary), self.dataset)
+
+	def testAPI_GetSeriesData_StartEnd(self):
+		self.req["QUERY_STRING"] = "STARTDATE=2012-08-28T13:30:00%2b0000&enddate=2012-08-28T14:30:00%2b0000"
+		self.api.get_data(self.req, self.res)
+		self.db.get_values.assert_called_once_with(
+			19,
+			from_ts=datetime.datetime(2012, 8, 28, 13, 30, 0, 0, datetime.timezone.utc),
+			to_ts=datetime.datetime(2012, 8, 28, 14, 30, 0, 0, datetime.timezone.utc))
+		self.assertCountEqual(list(self.res.data.binary), self.dataset)
+
 class TestAPI_GetSeriesInfo(TestAPI_WithSeries):
 	def test_GetInfo_NotSeries(self):
 		self.db.is_series.return_value = False

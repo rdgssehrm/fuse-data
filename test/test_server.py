@@ -18,6 +18,7 @@ import fuse.app
 import fuse.db
 
 _P15 = datetime.timezone(datetime.timedelta(0, 900))
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 
 class TestServer_Base(unittest.TestCase):
 	def setUp(self):
@@ -136,6 +137,68 @@ class TestServer_WithSeries(TestServer_WithSeries_Base):
 		r = requests.get(self.base_uri + "series/" + str(self.sid))
 		self.assertEqual(r.status_code, requests.codes.ok)
 		#self.assertEqual(r.json, {})
+
+
+class TestServer_WithData_Base(TestServer_WithSeries_Base):
+	def setUp(self):
+		TestServer_WithSeries_Base.setUp(self)
+		ts = datetime.datetime(2012, 8, 28, 12, 0, 0, 0, _P15)
+		d = datetime.timedelta(0, 1800)
+		self.data = []
+		for i, v in enumerate((35, 33.7, 30.9, 39.0, 41, 36.3, 37.4, 31)):
+			self.db.add_value(self.sid, ts + d*i, v)
+			self.data.append((ts + d*i, v))
+		self.data_uri = self.base_uri + "series/" + str(self.sid) + "/data/"
+
+	def tearDown(self):
+		TestServer_WithSeries_Base.tearDown(self)
+
+
+class TestServer_WithData(TestServer_WithData_Base):
+	def test_GetData_NonSeries(self):
+		r = requests.get(self.base_uri + "series/" + str(self.sid+1) + "/data")
+		self.assertEqual(r.status_code, requests.codes.not_found)
+
+	def test_GetData_All(self):
+		r = requests.get(self.data_uri)
+		self.assertEqual(r.status_code, requests.codes.ok)
+		self.assertSequenceEqual(r.json, self.data)
+
+	def test_GetData_BadStart(self):
+		r = requests.get(self.data_uri + "?startdate=Christmas")
+		self.assertEqual(r.status_code, requests.codes.bad_request)
+
+	def test_GetData_BadEnd(self):
+		r = requests.get(self.data_uri + "?enddate=wednesday%20week")
+		self.assertEqual(r.status_code, requests.codes.bad_request)
+
+	def test_GetData_All(self):
+		r = requests.get(self.data_uri)
+		self.assertEqual(r.status_code, requests.codes.ok)
+		self.assertSequenceEqual(
+			[(datetime.datetime.strptime(ts, DATE_FORMAT), v) for ts, v in r.json],
+			self.data)
+
+	def test_GetData_StartOnly(self):
+		r = requests.get(self.data_uri + "?startDate=2012-08-28T13:30:00%2b0000")
+		self.assertEqual(r.status_code, requests.codes.ok)
+		self.assertSequenceEqual(
+			[(datetime.datetime.strptime(ts, DATE_FORMAT), v) for ts, v in r.json],
+			self.data[4:])
+
+	def test_GetData_EndOnly(self):
+		r = requests.get(self.data_uri + "?eNdDaTe=2012-08-28T14:30:00%2b0000")
+		self.assertEqual(r.status_code, requests.codes.ok)
+		self.assertSequenceEqual(
+			[(datetime.datetime.strptime(ts, DATE_FORMAT), v) for ts, v in r.json],
+			self.data[:6])
+
+	def test_GetData_StartAndEnd(self):
+		r = requests.get(self.data_uri + "?eNdDaTe=2012-08-28T14:30:00%2b0000&STARTDATE=2012-08-28T13:30:00%2b0000")
+		self.assertEqual(r.status_code, requests.codes.ok)
+		self.assertSequenceEqual(
+			[(datetime.datetime.strptime(ts, DATE_FORMAT), v) for ts, v in r.json],
+			self.data[4:6])
 
 
 if __name__ == '__main__':
