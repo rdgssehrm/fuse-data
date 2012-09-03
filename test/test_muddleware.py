@@ -137,6 +137,36 @@ class TestMuddleware(unittest.TestCase):
 			 call("%s(%s) %s", "log_tag: ", str, "Second line"),
 			 ])
 
+	def test_CORS_Default(self):
+		"""Test the behaviour of the CORS object
+		"""
+		self.app.return_value = ["Result"]
+		result = Mock()
+		headers = Mock()
+		self.app.side_effect = lambda e, s: s(result, headers)
+		app = mw.CORS()(self.app)
+		res = app(self.env, self.sr)
+
+		#self.assertSequenceEqual(list(res), ["Result"])
+		self.app.assert_called_once_with({}, ANY)
+		self.sr.assert_called_once_with(result, headers)
+		headers.append.called_once_with(("Access-Control-Allow-Origin", "*"))
+
+	def test_CORS_NonDefault(self):
+		"""Test the behaviour of the CORS object
+		"""
+		self.app.return_value = ["Result"]
+		result = Mock()
+		headers = Mock()
+		self.app.side_effect = lambda e, s: s(result, headers)
+		app = mw.CORS(["bbc.co.uk", "carfax.org.uk"])(self.app)
+		res = app(self.env, self.sr)
+
+		#self.assertSequenceEqual(list(res), ["Result"])
+		self.app.assert_called_once_with({}, ANY)
+		self.sr.assert_called_once_with(result, headers)
+		headers.append.called_once_with(("Access-Control-Allow-Origin", "bbc.co.uk carfax.org.uk"))
+
 # FIXME: Add tests for the exception handler and HTTP change/caching
 # test function
 

@@ -123,6 +123,21 @@ class ParameterisedMiddleware(object):
 		return MW
 
 @ParameterisedMiddleware
+class CORS(object):
+	"""Add CORS headers to responses
+	"""
+	def __init__(self, app, sites=["*"]):
+		self.app = app
+		self.sites = sites
+
+	def __call__(self, environ, start):
+		def my_start(result, headers):
+			headers.append(("Access-Control-Allow-Origin", " ".join(self.sites)))
+			return start(result, headers)
+
+		return self.app(environ, my_start)
+
+@ParameterisedMiddleware
 class DebugLogger(object):
 	"""Implementation of a DebugLogger object
 	"""
