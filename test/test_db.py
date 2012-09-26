@@ -34,7 +34,7 @@ class TestDBWithMultiSeriesCommon(TestDBWithSeriesCommon):
 		TestDBWithSeriesCommon.setUp(self)
 		self.sid2 = self.db.create_series(
 			datetime.timedelta(seconds=900),
-			ts_type="pointless")
+			ts_type="mean")
 		self.sid3 = self.db.create_series(datetime.timedelta(seconds=600))
 
 

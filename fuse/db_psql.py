@@ -26,6 +26,10 @@ class Database(object):
 					  get_limit=1000):
 		"""Create a time-series. Return the ID of the series created.
 		"""
+		if ts_type not in ("point", "mean", "stdev", "count"):
+			log.error("Series creation failed: type \"%s\" not recognised", ts_type)
+			return None
+
 		self.db.commit()
 		self.db.autocommit = False
 		try:
