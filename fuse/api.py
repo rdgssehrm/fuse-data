@@ -179,12 +179,14 @@ class APIWrapper(object):
 				except ValueError:
 					fail_as(res, "400 Unparsable parameter",
 							"Start date was not parsable", v[0])
+					return
 			if lk == "enddate":
 				try:
 					kwargs["to_ts"] = parse_timestamp(v[0])
 				except ValueError:
 					fail_as(res, "400 Unparsable parameter",
 							"End date was not parsable", v[0])
+					return
 			# FIXME: Further processing of other parameters here.
 			# No parameter should be passed unvalidated or without a
 			# definite key.
