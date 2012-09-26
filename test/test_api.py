@@ -133,13 +133,13 @@ class TestAPI_WithSeriesAndData(TestAPI_WithSeries):
 
 	def testAPI_GetSeriesData_BadParam1(self):
 		self.req["QUERY_STRING"] = "startDate=tomorrow"
-		with self.assertRaises(ValueError):
-			self.api.get_data(self.req, self.res)
+		self.api.get_data(self.req, self.res)
+		self.assertEqual(self.res.result.split()[0], "400")
 
 	def testAPI_GetSeriesData_BadParam2(self):
 		self.req["QUERY_STRING"] = "endDate=tomorrow"
-		with self.assertRaises(ValueError):
-			self.api.get_data(self.req, self.res)
+		self.api.get_data(self.req, self.res)
+		self.assertEqual(self.res.result.split()[0], "400")
 
 	def testAPI_GetSeriesData_StartOnly(self):
 		self.req["QUERY_STRING"] = "STARTDATE=2012-08-28T13:30:00%2b0000"
