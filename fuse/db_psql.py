@@ -180,7 +180,7 @@ class Database(object):
 		"""
 		log.info("Upgrade required from %s to %s", from_ver, CURRENT_VERSION)
 		if from_ver <= 0:
-			log.info("Creating new database")
+			log.info("Creating new database structure")
 			self.db.autocommit = False
 			try:
 				cur = self.db.cursor()
@@ -212,7 +212,7 @@ class Database(object):
 					""")
 				cur.execute(
 					"""
-					create function upsert_data(
+					create or replace function upsert_data(
 						sid integer,
 						datatime timestamp with time zone,
 						ingesttime timestamp with time zone,
