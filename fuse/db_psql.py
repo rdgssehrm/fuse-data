@@ -140,7 +140,10 @@ class Database(object):
 		self._query("drop table data")
 		self._query("drop table series")
 		self._query("drop table version")
-		self._query("drop language plpgsql cascade")
+		# For psql < 9.1
+		#self._query("drop language plpgsql cascade")
+		# For psql >= 9.1
+		##self._query("drop extension if exists plgqsql casscade")
 
 	def _db_version(self):
 		"""Check and return the current version of this DB. If the
@@ -179,8 +182,10 @@ class Database(object):
 				cur = self.db.cursor()
 				cur.execute("create table version (version integer)")
 				cur.execute("insert into version values (1)")
-				cur.execute("create language plpgsql")
-				#cur.execute("create extension if not exists plpgsql")
+				# For psql < 9.1
+				#cur.execute("create or replace language plpgsql")
+				# For psql >= 9.1
+				##cur.execute("create extension if not exists plpgsql")
 				cur.execute(
 					"""
 					create table series (
