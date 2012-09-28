@@ -20,10 +20,13 @@ class Database(object):
 			self._upgrade(ver)
 
 	def create_series(self,
+					  name,
 					  period,
 					  epoch=datetime.datetime(1970, 1, 1, tzinfo=_UTC),
 					  ts_type="point",
-					  get_limit=1000):
+					  unit="",
+					  get_limit=1000,
+					  description=""):
 		"""Create a time-series. Return the ID of the series created.
 		"""
 		if ts_type not in ("point", "mean", "stdev", "count"):
@@ -35,14 +38,19 @@ class Database(object):
 		try:
 			self._query(
 				"""
-				insert into series (period, epoch, ts_type, get_limit)
-				values (%s, %s, %s, %s)
-				""", (period, epoch, ts_type, get_limit))
+				insert into series (name, description, units, period, epoch,
+									ts_type, get_limit)
+				values (%s, %s, %s, %s, %s, %s, %s)
+				""", (name, description, unit, period, epoch,
+					  ts_type, get_limit))
 			rv = self._query("select lastval()").fetchone()[0]
 			self.db.commit()
 		except psycopg2.DatabaseError as ex:
 			self.db.rollback()
-			log.error("Series creation failed: period=%s, epoch=%s, type=%s, limit=%s", period, epoch, ts_type, get_limit, exc_info=ex)
+			log.error("Series creation failed: name=%s, units=%s, period=%s,"
+					  + " epoch=%s, type=%s, limit=%s",
+					  name, unit, period, epoch, ts_type, get_limit,
+					  exc_info=ex)
 			rv = None
 
 		self.db.autocommit = True
@@ -53,10 +61,11 @@ class Database(object):
 		"""
 		self._query("delete from series where id=%s", (sid,))
 
-	def list_series(self, sid=None, period=None, ts_type=None):
+	def list_series(self, sid=None, period=None, ts_type=None, name=None):
 		"""List the available time-series
 		"""
-		sql = "select id, period, epoch, ts_type, get_limit from series where 1=1"
+		sql = "select id, name, description, period, epoch, ts_type, "
+		sql += " get_limit, units from series where 1=1"
 		params = []
 		if sid is not None:
 			sql += " and id=%s"
@@ -76,13 +85,20 @@ class Database(object):
 		if ts_type is not None:
 			sql += " and ts_type = %s"
 			params.append(ts_type)
+		if name is not None:
+			sql += " and name ilike %s"
+			params.append("%{0}%".format(name))
 
 		cur = self._query(sql, params)
 		return { r[0]: { "id": r[0],
-						 "period": r[1],
-						 "epoch": r[2],
-						 "type": r[3],
-						 "limit": r[4], }
+						 "name": r[1],
+						 "description": r[2],
+						 "period": r[3],
+						 "epoch": r[4],
+						 "type": r[5],
+						 "limit": r[6],
+						 "units": r[7],
+						 }
 				 for r in cur }
 
 	def is_series(self, sid):
@@ -194,6 +210,9 @@ class Database(object):
 					"""
 					create table series (
 					  id serial primary key,
+					  name varchar,
+					  description varchar,
+					  units varchar(20),
 					  period interval,
 					  epoch timestamp with time zone,
 					  ts_type varchar(10),

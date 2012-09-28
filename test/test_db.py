@@ -1,3 +1,4 @@
+# coding: utf-8
 """Unit testing
 """
 
@@ -27,34 +28,42 @@ class TestDBCommon(unittest.TestCase):
 class TestDBWithSeriesCommon(TestDBCommon):
 	def setUp(self):
 		TestDBCommon.setUp(self)
-		self.sid = self.db.create_series(datetime.timedelta(seconds=1800))
+		self.sid = self.db.create_series(
+			"convergent", datetime.timedelta(seconds=1800))
 
 class TestDBWithMultiSeriesCommon(TestDBWithSeriesCommon):
 	def setUp(self):
 		TestDBWithSeriesCommon.setUp(self)
 		self.sid2 = self.db.create_series(
+			"convergent",
 			datetime.timedelta(seconds=900),
 			ts_type="mean")
-		self.sid3 = self.db.create_series(datetime.timedelta(seconds=600))
+		self.sid3 = self.db.create_series(
+			"divergent",
+			datetime.timedelta(seconds=600))
 
 
 class TestDBCreateSeries(TestDBCommon):
 	def test_CreateSeries(self):
-		sid = self.db.create_series(datetime.timedelta(seconds=1800))
+		sid = self.db.create_series("test1", datetime.timedelta(seconds=1800))
 		serlist = self.db.list_series()
 		self.assertIn(sid, serlist)
 
 	def test_CreateSeriesParams(self):
 		sid = self.db.create_series(
+			"test2",
 			datetime.timedelta(seconds=1000),
 			epoch=datetime.datetime(1970, 1, 1, 0, 8, 20, tzinfo=_UTC),
-			ts_type="test",
-			get_limit=12)
+			ts_type="point",
+			get_limit=12,
+			description="This is a new test series",
+			unit="°C/m²")
 		serlist = self.db.list_series()
 		self.assertIn(sid, serlist)
 
 	def test_CreateSeriesWithFailure1(self):
 		sid = self.db.create_series(
+			"test3",
 			datetime.timedelta(seconds=1800),
 			epoch="colin")
 		serlist = self.db.list_series()
@@ -62,7 +71,16 @@ class TestDBCreateSeries(TestDBCommon):
 		self.assertEqual(len(serlist), 0)
 
 	def test_CreateSeriesWithFailure2(self):
-		sid = self.db.create_series("colin")
+		sid = self.db.create_series("test4", "colin")
+		serlist = self.db.list_series()
+		self.assertIsNone(sid)
+		self.assertEqual(len(serlist), 0)
+
+	def test_CreateSeriesWithFailure3(self):
+		sid = self.db.create_series(
+			"test5",
+			datetime.timedelta(seconds=1800),
+			ts_type="foo")
 		serlist = self.db.list_series()
 		self.assertIsNone(sid)
 		self.assertEqual(len(serlist), 0)
