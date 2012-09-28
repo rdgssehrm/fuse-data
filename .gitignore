@@ -2,3 +2,4 @@
 *.pyc
 fuse/config.py
 test/test_config.py
+log
