@@ -17,7 +17,7 @@ class TestAPI(unittest.TestCase):
 		mapper = Mock()
 		self.db = Mock()
 		self.input = Mock()
-		self.input.read.return_value = b'{"period":1800}'
+		self.input.read.return_value = b'{"name":"test","period":1800}'
 		self.req = { "CONTENT_TYPE": "application/json",
 					 "CONTENT_LENGTH": len(self.input.read()),
 					 "wsgi.input": self.input, }
@@ -48,6 +48,26 @@ class TestAPI_NoSeries(TestAPI):
 		self.db.create_series = Mock(return_value=130)
 		self.api.add_series(self.req, self.res)
 		self.assertSequenceEqual(list(self.res.data), [b"130"])
+		self.db.create_series.assert_called_once_with(
+			"test", datetime.timedelta(seconds=1800))
+
+	def test_CreateSeries_NoPeriod(self):
+		self.db.create_series = Mock(return_value=130)
+		self.input.read.return_value = b'{"name":"foo"}'
+		self.api.add_series(self.req, self.res)
+		self.assertEqual(self.res.result.split()[0], "400")
+
+	def test_CreateSeries_BadPeriod(self):
+		self.db.create_series = Mock(return_value=130)
+		self.input.read.return_value = b'{"name":"test","period":"moo"}'
+		self.api.add_series(self.req, self.res)
+		self.assertEqual(self.res.result.split()[0], "400")
+
+	def test_CreateSeries_NoName(self):
+		self.db.create_series = Mock(return_value=130)
+		self.input.read.return_value = b'{"period":"1800"}'
+		self.api.add_series(self.req, self.res)
+		self.assertEqual(self.res.result.split()[0], "400")
 
 
 class TestAPI_WithSeries(TestAPI):
@@ -196,6 +216,10 @@ class TestAPI_FailAs(unittest.TestCase):
 
 
 class TestAPI_GetJSON(TestAPI):
+	def setUp(self):
+		TestAPI.setUp(self)
+		self.input.read.return_value = b'{"period":1800}'
+
 	def test_GetJSON_ContentType_Missing(self):
 		del self.req["CONTENT_TYPE"]
 		r = fuse.api.get_json(self.req, self.res)

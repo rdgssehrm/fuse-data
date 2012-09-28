@@ -132,10 +132,25 @@ class APIWrapper(object):
 					"The request data was missing a required parameter",
 					"period")
 			return
+		else:
+			try:
+				period = int(desc["period"])
+			except ValueError:
+				fail_as(res, "400 Bad syntax",
+						"Period is not an integer",
+						desc["period"])
+				return
+
+		if "name" not in desc:
+			fail_as(res, "400 Missing parameter",
+					"The request data was missing a required parameter",
+					"name")
+			return
 
 		# FIXME: Parse and accept other options here
 		res.data = BJI(
 			self.db.create_series(
+				desc["name"],
 				datetime.timedelta(seconds=desc['period'])
 				)
 			)
