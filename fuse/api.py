@@ -127,6 +127,7 @@ class APIWrapper(object):
 					request_text)
 			return
 
+		# Parse required parameters
 		if "period" not in desc:
 			fail_as(res, "400 Missing parameter",
 					"The request data was missing a required parameter",
@@ -147,12 +148,31 @@ class APIWrapper(object):
 					"name")
 			return
 
-		# FIXME: Parse and accept other options here
+		# Parse optional parameters
+		kwparams = {}
+
+		for ikey, pkey, typ in (("type", "ts_type", None),
+								("unit", "unit", None),
+								("description", "description", None),
+								("limit", "get_limit", int),
+								("epoch", "epoch", parse_timestamp)):
+			if typ is None:
+				typ = lambda x: x
+			try:
+				kwparams[pkey] = typ(desc[ikey])
+			except KeyError:
+				pass
+			except ValueError:
+				fail_as(res, "400 Bad syntax",
+						"{0} is not parsable".format(pkey), desc[pkey])
+				return
+
+		# Create the series
 		res.data = BJI(
 			self.db.create_series(
 				desc["name"],
-				datetime.timedelta(seconds=desc['period'])
-				)
+				datetime.timedelta(seconds=desc['period']),
+				**kwparams)
 			)
 
 	def get_series_info(self, req, res):

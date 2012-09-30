@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 """Unit testing
 """
 
 import unittest
 import datetime
+import json
 
 from mock import Mock, ANY, call
 
@@ -51,6 +53,28 @@ class TestAPI_NoSeries(TestAPI):
 		self.db.create_series.assert_called_once_with(
 			"test", datetime.timedelta(seconds=1800))
 
+	def test_CreateSeriesFull(self):
+		self.db.create_series = Mock(return_value=130)
+		self.input.read.return_value = json.dumps({
+			"name":"test",
+			"period":1800,
+			"type":"mean",
+			"description":"A series",
+			"unit":"cm²/°C",
+			"limit":12,
+			"epoch":"1970-01-01T00:12:13.0+0015",
+			}).encode("utf8")
+		self.api.add_series(self.req, self.res)
+		self.assertSequenceEqual(list(self.res.data), [b"130"])
+		self.db.create_series.assert_called_once_with(
+			"test",
+			datetime.timedelta(seconds=1800),
+			ts_type="mean",
+			description="A series",
+			unit="cm²/°C",
+			get_limit=12,
+			epoch=datetime.datetime(1970, 1, 1, 0, 12, 13, 0, _P15))
+
 	def test_CreateSeries_NoPeriod(self):
 		self.db.create_series = Mock(return_value=130)
 		self.input.read.return_value = b'{"name":"foo"}'
@@ -66,6 +90,18 @@ class TestAPI_NoSeries(TestAPI):
 	def test_CreateSeries_NoName(self):
 		self.db.create_series = Mock(return_value=130)
 		self.input.read.return_value = b'{"period":"1800"}'
+		self.api.add_series(self.req, self.res)
+		self.assertEqual(self.res.result.split()[0], "400")
+
+	def test_CreateSeries_BadLimit(self):
+		self.db.create_series = Mock(return_value=130)
+		self.input.read.return_value = b'{"name":"test","period":"moo","limit":"moo"}'
+		self.api.add_series(self.req, self.res)
+		self.assertEqual(self.res.result.split()[0], "400")
+
+	def test_CreateSeries_BadEpoch(self):
+		self.db.create_series = Mock(return_value=130)
+		self.input.read.return_value = b'{"name":"test","period":"moo","epoch":"moo"}'
 		self.api.add_series(self.req, self.res)
 		self.assertEqual(self.res.result.split()[0], "400")
 
