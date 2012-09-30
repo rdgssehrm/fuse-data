@@ -1,0 +1,43 @@
+#!/usr/bin/python3
+# -*- python -*-
+
+import sys
+import csv
+import requests
+import json
+from pprint import pprint
+
+urlbase = "http://localhost:1732/api/"
+
+ser_name = sys.argv[2]
+inf = open(sys.argv[1], "r", newline="")
+srdr = csv.reader(inf, dialect="excel")
+
+def ts(x):
+	d, t = x.split(" ")
+	return "{0}T{1}.000+0000".format(d, t)
+
+data = {}
+for i, row in enumerate(srdr):
+	if i == 1:
+		name = [ "{0}.{1}".format(ser_name, n) for n in row ]
+	if i < 4:
+		continue
+
+	stamp = ts(row[0])
+	for cn, value in zip(name[2:], row[2:]):
+		data.setdefault(cn, []).append((stamp, value))
+
+r = requests.get(urlbase + "series/")
+ser_list = r.json
+ser_meta = {}
+for ser_desc in ser_list.values():
+	ser_meta[ser_desc["name"]] = ser_desc
+
+for cn, ser in data.items():
+	serid = ser_meta[cn]["id"]
+	print(cn, serid, len(ser))
+	r = requests.post(urlbase + "series/{0}/data/".format(serid),
+					  data=json.dumps(ser))
+	print(r.status_code)
+	print(r.text)

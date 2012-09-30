@@ -3,3 +3,6 @@
 fuse/config.py
 test/test_config.py
 log
+data/*.csv
+data/*.xls
+data/*.dat

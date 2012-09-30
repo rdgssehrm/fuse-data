@@ -1,0 +1,28 @@
+#!/usr/bin/python3
+# -*- python -*-
+
+import csv
+import requests
+import json
+from pprint import pprint
+
+urlbase = "http://localhost:1732/api/"
+
+inf = open("FUSE-data-formats.csv", "r", newline="")
+srdr = csv.reader(inf, dialect="excel-tab")
+
+for i, row in enumerate(srdr):
+	if i < 4:
+		continue
+	data = {
+		"name": "{0}.{1}".format(row[0], row[2]),
+		"period": 1800,
+		"description": row[14],
+		"unit": row[4]}
+	data["type"] = {
+		"Avg": "mean",
+		"Std": "stdev",
+		"Tot": "count",
+		}[row[2].split("_")[-1]]
+
+	r = requests.post(urlbase + "series/", data=json.dumps(data))
