@@ -63,9 +63,23 @@ class TestConnegTransformers(TestConnegBase):
 
 
 class TestConneg(TestConnegBase):
-	def test_ConnegBasic(self):
+	def test_ConnegDefault(self):
+		res = self.cn({}, self.sr)
+		self.assertEqual(self.jsonxfm().transform.call_count, 1)
+		args, kwargs = self.jsonxfm().transform.call_args
+		self.assertEqual(args[0], ["Sample"])
+
+	def test_ConnegByType1(self):
 		res = self.cn({"QUERY_STRING": "type=json"}, self.sr)
-		self.assertListEqual(res, [b'["Sample"]'])
+		self.assertEqual(self.jsonxfm().transform.call_count, 1)
+		args, kwargs = self.jsonxfm().transform.call_args
+		self.assertEqual(args[0], ["Sample"])
+
+	def test_ConnegByType2(self):
+		res = self.cn({"QUERY_STRING": "type=xml"}, self.sr)
+		self.assertEqual(self.xmlxfm().transform.call_count, 1)
+		args, kwargs = self.xmlxfm().transform.call_args
+		self.assertEqual(args[0], ["Sample"])
 
 
 if __name__ == '__main__':

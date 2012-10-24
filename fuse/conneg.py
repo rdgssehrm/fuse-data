@@ -56,10 +56,6 @@ class Conneg(object):
 	def __call__(self, environ, start_response):
 		state = _State(environ, start_response)
 
-		# Work out from the request environment what output format we
-		# want to use, and select it
-		state.transformer = self.get_transformer(environ)
-
 		# Bind the current environment and upstream start_response
 		# function into a callable we can pass down
 		def new_start_response(res, hdr, exc=None):
@@ -86,6 +82,10 @@ class Conneg(object):
 		to modify it (e.g. by adding headers).
 		"""
 		state.result = res.split(" ")[0]
+
+		# Work out from the request environment what output format we
+		# want to use, and select it
+		state.transformer = self.get_transformer(state.env)
 
 		# Modify the existing headers: drop any content-type or
 		# content-length headers
