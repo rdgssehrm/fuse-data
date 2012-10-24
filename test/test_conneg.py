@@ -16,7 +16,8 @@ class TestConnegBase(unittest.TestCase):
 		self.xmlxfm = Mock()
 		self.req = { }
 		self.transformers = { "json": self.jsonxfm,
-							  "xml": self.xmlxfm, }
+							  "xml": self.xmlxfm,
+							  "default": self.jsonxfm, }
 		self.cn = cn.Conneg(self.app)
 
 	def _app(self, env, sr):
@@ -31,6 +32,12 @@ class TestConnegTransformers(TestConnegBase):
 		self.req["transformers"] = self.transformers
 
 	def test_GetTransformerDefault(self):
+		xfm = self.cn.get_transformer(self.req)
+
+		self.assertEqual(xfm, self.jsonxfm())
+
+	def test_GetTransformerDefaultNoJSON(self):
+		self.req["transformers"] = { "xml": self.xmlxfm }
 		xfm = self.cn.get_transformer(self.req)
 
 		self.assertIsInstance(xfm, cn.JSONTransformer)

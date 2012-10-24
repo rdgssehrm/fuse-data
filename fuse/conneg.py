@@ -133,6 +133,11 @@ class Conneg(object):
 		except:
 			pass
 
+		try:
+			return environ["transformers"]["default"]()
+		except:
+			pass
+
 		return JSONTransformer()
 
 class Transformer(object):
