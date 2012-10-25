@@ -126,6 +126,12 @@ class Conneg(object):
 				if key.lower() == "type":
 					typ = value.lower()
 
+		if typ is None:
+			try:
+				typ = environ["wsgiorg.routing_args"][1]["extension"].lower()
+			except KeyError:
+				pass
+
 		# FIXME: Check the HTTP headers for acceptable MIME types if
 		# no explicit type is given
 

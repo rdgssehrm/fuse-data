@@ -100,7 +100,12 @@ class APIWrapper(object):
 				   GET=self.get_series_info,
 				   PUT=self.alter_series,
 				   POST=self.add_data)
+		# FIXME: We should be able to combine these two rules into one
+		# with a custom parser. See https://github.com/lukearno/selector/
 		mapper.add("/series/{series_id:digits}/data[/]",
+				   GET=self.get_data,
+				   POST=self.add_data)
+		mapper.add("/series/{series_id:digits}/data.{extension}[/]",
 				   GET=self.get_data,
 				   POST=self.add_data)
 		self.db = db
