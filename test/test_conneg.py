@@ -19,11 +19,12 @@ class TestConnegBase(unittest.TestCase):
 							  "xml": self.xmlxfm,
 							  "default": self.jsonxfm, }
 		self.cn = cn.Conneg(self.app)
+		self.data = ["Sample"]
 
 	def _app(self, env, sr):
 		env["transformers"] = self.transformers
 		sr("200 OK", [("X-Header", "Empty")])
-		return mw.BinaryJSONIterator(["Sample"])
+		return mw.BinaryJSONIterator(self.data)
 
 
 class TestConnegTransformers(TestConnegBase):
@@ -88,6 +89,21 @@ class TestConneg(TestConnegBase):
 		args, kwargs = self.xmlxfm().transform.call_args
 		self.assertEqual(args[0], ["Sample"])
 
+class TestConneg_CSV(TestConnegBase):
+	"""Validating the CSV transformer -- making sure that the
+	resulting output is the expected CSV format.
+	"""
+	def test_CSV(self):
+		self.data = (("Bogart", 1899, 1957),
+					 ("Lorre", 1904, 1964),
+					 ("Greenstreet", 1879, 1954))
+		self.transformers = { "csv": cn.CSVDataTransformer }
+		res = self.cn({"QUERY_STRING": "type=csv"}, self.sr)
+		self.assertEqual("".join(list(res)),
+"""Bogart,1899,1957\r
+Lorre,1904,1964\r
+Greenstreet,1879,1954\r
+""")
 
 if __name__ == '__main__':
 	unittest.main()

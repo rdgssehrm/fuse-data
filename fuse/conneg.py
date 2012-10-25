@@ -25,6 +25,7 @@ returned.
 
 import logging
 import json
+import csv
 
 import fuse.muddleware as muddleware
 
@@ -164,3 +165,36 @@ class JSONTransformer(Transformer):
 
 	def transform(self, binary, environ):
 		return [json.dumps(binary, cls=muddleware.JSONDateEncoder).encode("utf8")]
+
+class CSVDataTransformer(Transformer):
+	class _OutHandler(object):
+		"""Class implementing an iterator which uses a CSV writer
+		object to generate its output.
+
+		This class also implements the write() method so that the CSV
+		writer can actually write a line to it.
+		"""
+		def __init__(self, data):
+			self.value = []
+			self.data = data
+
+		def write(self, x):
+			log.debug("Received data: '%s'", x)
+			self.value.append(x)
+
+		def __iter__(self):
+			"""Return an iterator based on this object: actually a
+			generator function
+			"""
+			log.debug("iter called")
+			fmt = csv.writer(self, dialect="excel")
+			for line in self.data:
+				log.debug("Input line is: '%s'", line)
+				fmt.writerow(line)
+				log.debug("Output line is: '%s'", "".join(self.value))
+				yield "".join(self.value).encode("utf8")
+				self.value = []
+
+	def transform(self, binary, environ):
+		# Process just a time/value pair into a CSV output
+		return self._OutHandler(binary)

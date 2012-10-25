@@ -8,13 +8,12 @@ import json
 import datetime
 import urllib.parse
 
-from fuse.conneg import JSONTransformer
 import fuse.muddleware as muddleware
 import fuse.conneg as conneg
 
 BJI = muddleware.BinaryJSONIterator
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
-STD_TRANSFORMERS = { 'json': JSONTransformer }
+STD_TRANSFORMERS = { 'json': conneg.JSONTransformer }
 
 """
 REST API structure:
@@ -194,6 +193,7 @@ class APIWrapper(object):
 		min/max/mean/stdev filters.
 		"""
 		req["transformers"] = STD_TRANSFORMERS
+		req["transformers"]["csv"] = conneg.CSVDataTransformer
 		sid = int(req["wsgiorg.routing_args"][1]["series_id"])
 		if not self.db.is_series(sid):
 			fail_as(res, "404 Not found", "Series not found", str(sid))
