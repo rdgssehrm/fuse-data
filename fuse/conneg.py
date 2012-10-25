@@ -179,19 +179,15 @@ class CSVDataTransformer(Transformer):
 			self.data = data
 
 		def write(self, x):
-			log.debug("Received data: '%s'", x)
 			self.value.append(x)
 
 		def __iter__(self):
 			"""Return an iterator based on this object: actually a
 			generator function
 			"""
-			log.debug("iter called")
 			fmt = csv.writer(self, dialect="excel")
 			for line in self.data:
-				log.debug("Input line is: '%s'", line)
 				fmt.writerow(line)
-				log.debug("Output line is: '%s'", "".join(self.value))
 				yield "".join(self.value).encode("utf8")
 				self.value = []
 
