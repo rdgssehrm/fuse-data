@@ -2,6 +2,8 @@
 # -*- python -*-
 
 import sys
+import time
+import calendar
 import csv
 import requests
 import json
@@ -11,13 +13,26 @@ urlbase = "http://localhost:1731/api/"
 
 ser_name = sys.argv[2]
 inf = open(sys.argv[1], "r", newline="")
+try:
+	last_stamp_f = open(sys.argv[3], "r")
+	last_stamp = int(next(last_stamp_f))
+	last_stamp_f.close()
+except IndexError:
+	last_stamp = 0
+except IOError:
+	last_stamp = 0
+
 srdr = csv.reader(inf, dialect="excel")
 
 def ts(x):
 	d, t = x.split(" ")
 	return "{0}T{1}.000+0000".format(d, t)
 
+def uts(x):
+	return calendar.timegm(time.strptime(x, "%Y-%m-%dT%H:%M:%S.000+0000"))
+
 data = {}
+last_seen = last_stamp
 for i, row in enumerate(srdr):
 	if i == 1:
 		name = [ "{0}.{1}".format(ser_name, n) for n in row ]
@@ -25,8 +40,16 @@ for i, row in enumerate(srdr):
 		continue
 
 	stamp = ts(row[0])
+	if uts(stamp) <= last_stamp:
+		continue
+
+	last_seen = uts(stamp)
 	for cn, value in zip(name[2:], row[2:]):
 		data.setdefault(cn, []).append((stamp, value))
+
+last_stamp_f = open(sys.argv[3], "w")
+last_stamp_f.write("{0}\n".format(last_seen))
+last_stamp_f.close()
 
 r = requests.get(urlbase + "series/")
 ser_list = r.json()
