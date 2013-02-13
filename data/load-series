@@ -29,7 +29,7 @@ for i, row in enumerate(srdr):
 		data.setdefault(cn, []).append((stamp, value))
 
 r = requests.get(urlbase + "series/")
-ser_list = r.json
+ser_list = r.json()
 ser_meta = {}
 for ser_desc in ser_list.values():
 	ser_meta[ser_desc["name"]] = ser_desc
