@@ -7,7 +7,7 @@ import requests
 import json
 from pprint import pprint
 
-urlbase = "http://localhost:1732/api/"
+urlbase = "http://localhost:1731/api/"
 
 ser_name = sys.argv[2]
 inf = open(sys.argv[1], "r", newline="")

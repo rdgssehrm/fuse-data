@@ -6,10 +6,10 @@ import requests
 import json
 from pprint import pprint
 
-urlbase = "http://localhost:1732/api/"
+urlbase = "http://localhost:1731/api/"
 
 inf = open("FUSE-data-formats.csv", "r", newline="")
-srdr = csv.reader(inf, dialect="excel-tab")
+srdr = csv.reader(inf, dialect="excel")
 
 for i, row in enumerate(srdr):
 	if i < 4:
