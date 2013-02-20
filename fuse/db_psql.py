@@ -154,6 +154,15 @@ class Database(object):
 		cur = self._query(qry, params)
 		return ((row[0], row[1]) for row in cur)
 
+	def facet_summary(self, facet_type):
+		"""Return a list of (label, total) pairs for the facet requested
+		"""
+		qry = "select " + facet_type + ", count(*)" + \
+			  "from series group by " + facet_type
+		params = [facet_type,]
+		cur = self._query(qry, params)
+		return ((row[0], row[1]) for row in cur)
+
 	def _wipe(self):
 		"""Internal method used by test suite
 		"""

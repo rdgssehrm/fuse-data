@@ -22,6 +22,7 @@ REST API structure:
 	                PUT to alter series metadata,
 		data/		GET for series data,
 					POST to add/modify data records
+/api/meta/facets/	GET list of searchable facets and their options
 """
 
 # Helper functions
@@ -108,6 +109,8 @@ class APIWrapper(object):
 		mapper.add("/series/{series_id:digits}/data.{extension}[/]",
 				   GET=self.get_data,
 				   POST=self.add_data)
+		mapper.add("/meta/facets[/]",
+				   GET=self.get_search_facets)
 		self.db = db
 
 	def get_series_list(self, req, res):
@@ -267,3 +270,42 @@ class APIWrapper(object):
 				errors.append([ts.strftime(DATE_FORMAT), value])
 
 		res.data = BJI(errors)
+
+	def get_search_facets(self, req, res):
+		"""Retrieve a collection of facets by which series are
+		classified, and the different classifiers within each facet.
+		"""
+		req["transformers"] = STD_TRANSFORMERS
+
+		facets = []
+
+		# Data type facets
+		f = { "id": "type",
+			  "label": "Data type",
+			  "type": "selection",
+			  "entries": [
+				  { "id": "point", "label": "Point value" },
+				  { "id": "mean", "label": "Mean" },
+				  { "id": "stdev", "label": "Standard deviation" },
+				  { "id": "count", "label": "Total count" },
+				  ]
+			  }
+		facets.append(f)
+
+		# Units facets
+		ents = []
+		f = { "id": "unit",
+			  "label": "Units",
+			  "type": "selection",
+			  "entries": ents }
+		facets.append(f)
+
+		for label, total in self.db.facet_summary("units"):
+			fid = label.lower()
+			e = { "label": label,
+				  "id": fid }
+			ents.append(e)
+
+		# Add more facets here
+
+		res.data = BJI(facets)
