@@ -161,6 +161,29 @@ class TestDBWithMultiSeries(TestDBWithMultiSeriesCommon):
 		serlist = self.db.list_series(ts_type="point")
 		self.assertCountEqual((self.sid, self.sid3), serlist)
 
+	def test_GetFacet(self):
+		res = self.db.facet_summary("period")
+		self.assertCountEqual(((datetime.timedelta(seconds=900), 1),
+							   (datetime.timedelta(seconds=600), 1),
+							   (datetime.timedelta(seconds=1800), 1)),
+							  res)
+
+	def test_GetFacet2(self):
+		res = self.db.facet_summary("units")
+		self.assertCountEqual((("", 3),), res)
+
+	def test_GetFacetFail(self):
+		# Note: we use Exception here, because (at least in psycopg2)
+		# it's the first non-library-specific exception in the MRO for
+		# the ProgrammingError exception that we're expecting. This is
+		# far too generic for my liking, but switching to something
+		# more specific would either need help from the DB
+		# implementation code (which is ugly), or to put in a bunch of
+		# different tests, one for each implementation (which is
+		# worse).
+		with self.assertRaises(Exception):
+			res = self.db.facet_summary("diamond")
+
 
 if __name__ == '__main__':
 	unittest.main()
