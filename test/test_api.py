@@ -233,6 +233,43 @@ class TestAPI_GetSeriesInfo(TestAPI_WithSeries):
 		self.db.list_series.assert_called_once_with(sid=19)
 
 
+class TestAPI_WithSeriesMetadata(TestAPI_WithSeries):
+	def setUp(self):
+		TestAPI_WithSeries.setUp(self)
+		self.db.list_series = Mock(return_value={
+			150: { "id": 150,
+				   "period": 900,
+				   "epoch": datetime.datetime(2012, 8, 28, 16, 30, 0, 0, _P15),
+				   "type": "period",
+				   "limit": 1000
+				   }})
+		self.db.facet_summary = Mock(side_effect=lambda nm: {
+			"units": (("°C", 2), ("mV", 3)),
+			}[nm])
+
+	def test_GetFacets(self):
+		self.api.get_search_facets(self.req, self.res)
+		self.assertEqual(
+			list(self.res.data.binary),
+			[ { "id": "type",
+				"label": "Data type",
+				"type": "selection",
+				"entries": [
+					{ "id": "point", "label": "Point value" },
+					{ "id": "mean", "label": "Mean" },
+					{ "id": "stdev", "label": "Standard deviation" },
+					{ "id": "count", "label": "Total count" },
+					]},
+			  { "id": "unit",
+				"label": "Units",
+				"type": "selection",
+				"entries": [
+					{ "id": "°c", "label": "°C" },
+					{ "id": "mv", "label": "mV" },
+					]},
+				])
+
+
 class TestAPI_FailAs(unittest.TestCase):
 	def setUp(self):
 		fuse.api.log = Mock()
