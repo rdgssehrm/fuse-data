@@ -1,9 +1,9 @@
 #!/bin/sh
 
 suite=$1
-shift
 
 if [ -f test/test_${suite}.py ]; then
+	shift
 	python3 -m test.test_${suite} "$@"
 else
 	python3 -m unittest "$@"
