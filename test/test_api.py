@@ -34,7 +34,7 @@ class TestAPI_NoSeries(TestAPI):
 			150: { "id": 150,
 				   "period": 900,
 				   "epoch": datetime.datetime(2012, 8, 28, 16, 30, 0, 0, _P15),
-				   "type": "period",
+				   "ts_type": "period",
 				   "limit": 1000
 				   }})
 		self.api.get_series_list(self.req, self.res)
@@ -42,9 +42,9 @@ class TestAPI_NoSeries(TestAPI):
 		# JSON library, and may fail
 		self.assertSequenceEqual(
 			list(self.res.data),
-			[b'{"150": {"limit": 1000, '
-			 b'"epoch": "2012-08-28T16:30:00.000000+0015", "type": "period", '
-			 b'"id": 150, "period": 900}}'])
+			[b'{"150": {"ts_type": "period", '
+			 b'"epoch": "2012-08-28T16:30:00.000000+0015", '
+			 b'"limit": 1000, "id": 150, "period": 900}}'])
 
 	def test_CreateSeries(self):
 		self.db.create_series = Mock(return_value=130)
@@ -58,7 +58,7 @@ class TestAPI_NoSeries(TestAPI):
 		self.input.read.return_value = json.dumps({
 			"name":"test",
 			"period":1800,
-			"type":"mean",
+			"ts_type":"mean",
 			"description":"A series",
 			"unit":"cm²/°C",
 			"limit":12,
@@ -240,7 +240,7 @@ class TestAPI_WithSeriesMetadata(TestAPI_WithSeries):
 			150: { "id": 150,
 				   "period": 900,
 				   "epoch": datetime.datetime(2012, 8, 28, 16, 30, 0, 0, _P15),
-				   "type": "period",
+				   "ts_type": "period",
 				   "limit": 1000
 				   }}
 		self.db.list_series = Mock(return_value=self.sample_series)
@@ -252,7 +252,7 @@ class TestAPI_WithSeriesMetadata(TestAPI_WithSeries):
 		self.api.get_search_facets(self.req, self.res)
 		self.assertEqual(
 			list(self.res.data.binary),
-			[ { "id": "type",
+			[ { "id": "ts_type",
 				"label": "Data type",
 				"type": "selection",
 				"entries": [
@@ -295,17 +295,17 @@ class TestAPI_WithSeriesMetadata(TestAPI_WithSeries):
 		self.assertEqual(self.res.result.split()[0], "400")
 
 	def test_GetFilteredType(self):
-		self.req["QUERY_STRING"] = "type=point"
+		self.req["QUERY_STRING"] = "ts_type=point"
 		self.api.get_series_list(self.req, self.res)
-		self.db.list_series.assert_called_with(type="point")
+		self.db.list_series.assert_called_with(ts_type="point")
 		self.assertEqual(self.res.data.binary, self.sample_series)
 
 	def test_GetFilteredBadType(self):
-		self.req["QUERY_STRING"] = "type=tesseract"
+		self.req["QUERY_STRING"] = "ts_type=tesseract"
 		self.api.get_series_list(self.req, self.res)
 		# The list_series function should be called here, and should
 		# fail to return anything useful.
-		self.db.list_series.assert_called_with(type="tesseract")
+		self.db.list_series.assert_called_with(ts_type="tesseract")
 
 	def test_GetFilteredUnit(self):
 		self.req["QUERY_STRING"] = "unit=°c"

@@ -48,7 +48,7 @@ class Database(object):
 		except psycopg2.DatabaseError as ex:
 			self.db.rollback()
 			log.error("Series creation failed: name=%s, units=%s, period=%s,"
-					  + " epoch=%s, type=%s, limit=%s",
+					  + " epoch=%s, ts_type=%s, limit=%s",
 					  name, unit, period, epoch, ts_type, get_limit,
 					  exc_info=ex)
 			rv = None
@@ -61,7 +61,8 @@ class Database(object):
 		"""
 		self._query("delete from series where id=%s", (sid,))
 
-	def list_series(self, sid=None, period=None, ts_type=None, name=None):
+	def list_series(self, sid=None, period=None, ts_type=None, name=None,
+					unit=None):
 		"""List the available time-series
 		"""
 		sql = "select id, name, description, period, epoch, ts_type, "
@@ -88,6 +89,12 @@ class Database(object):
 		if name is not None:
 			sql += " and name ilike %s"
 			params.append("%{0}%".format(name))
+		if unit is not None:
+			sql += " and lower(units) = %s"
+			params.append(unit)
+			# FIXME: We really need a lookup table from unique
+			# sanitised unit IDs to unit names, rather than this hack
+			# with lower()
 
 		cur = self._query(sql, params)
 		return { r[0]: { "id": r[0],
@@ -95,7 +102,7 @@ class Database(object):
 						 "description": r[2],
 						 "period": r[3],
 						 "epoch": r[4],
-						 "type": r[5],
+						 "ts_type": r[5],
 						 "limit": r[6],
 						 "units": r[7],
 						 }

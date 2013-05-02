@@ -129,7 +129,7 @@ class APIWrapper(object):
 		# Sanitise parameters
 		for k, v in qstring.items():
 			lk = k.lower()
-			if lk in ("type", "unit"):
+			if lk in ("ts_type", "unit"):
 				facets[lk] = v[0]
 			elif lk in ("period",):
 				try:
@@ -201,7 +201,7 @@ class APIWrapper(object):
 		# Parse optional parameters
 		kwparams = {}
 
-		for ikey, pkey, typ in (("type", "ts_type", None),
+		for ikey, pkey, typ in (("ts_type", "ts_type", None),
 								("unit", "unit", None),
 								("description", "description", None),
 								("limit", "get_limit", int),
@@ -323,7 +323,7 @@ class APIWrapper(object):
 		facets = []
 
 		# Data type facets
-		f = { "id": "type",
+		f = { "id": "ts_type",
 			  "label": "Data type",
 			  "type": "selection",
 			  "entries": [
