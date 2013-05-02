@@ -29,7 +29,8 @@ class TestDBWithSeriesCommon(TestDBCommon):
 	def setUp(self):
 		TestDBCommon.setUp(self)
 		self.sid = self.db.create_series(
-			"convergent", datetime.timedelta(seconds=1800))
+			"convergent", datetime.timedelta(seconds=1800),
+			unit="°C")
 
 class TestDBWithMultiSeriesCommon(TestDBWithSeriesCommon):
 	def setUp(self):
@@ -37,10 +38,12 @@ class TestDBWithMultiSeriesCommon(TestDBWithSeriesCommon):
 		self.sid2 = self.db.create_series(
 			"convergent",
 			datetime.timedelta(seconds=900),
-			ts_type="mean")
+			ts_type="mean",
+			unit="°C")
 		self.sid3 = self.db.create_series(
 			"divergent",
-			datetime.timedelta(seconds=600))
+			datetime.timedelta(seconds=600),
+			unit="°C/m²")
 
 
 class TestDBCreateSeries(TestDBCommon):
@@ -158,8 +161,20 @@ class TestDBWithMultiSeries(TestDBWithMultiSeriesCommon):
 		self.assertCountEqual((self.sid2, self.sid3), serlist)
 
 	def test_ListSeriesByType(self):
-		serlist = self.db.list_series(ts_type="point")
+		serlist = self.db.list_series(ts_type=["point"])
 		self.assertCountEqual((self.sid, self.sid3), serlist)
+
+	def test_ListSeriesByTypeMulti(self):
+		serlist = self.db.list_series(ts_type=["point", "mean"])
+		self.assertCountEqual((self.sid, self.sid2, self.sid3), serlist)
+
+	def test_ListSeriesByUnit(self):
+		serlist = self.db.list_series(unit=["°c/m²"])
+		self.assertCountEqual((self.sid3,), serlist)
+
+	def test_ListSeriesByUnitMulti(self):
+		serlist = self.db.list_series(unit=["°c/m²", "°c"])
+		self.assertCountEqual((self.sid, self.sid2, self.sid3), serlist)
 
 	def test_GetFacet(self):
 		res = self.db.facet_summary("period")
@@ -170,7 +185,7 @@ class TestDBWithMultiSeries(TestDBWithMultiSeriesCommon):
 
 	def test_GetFacet2(self):
 		res = self.db.facet_summary("units")
-		self.assertCountEqual((("", 3),), res)
+		self.assertCountEqual((("°C", 2),("°C/m²",1)), res)
 
 	def test_GetFacetFail(self):
 		# Note: we use Exception here, because (at least in psycopg2)

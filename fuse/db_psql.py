@@ -84,14 +84,14 @@ class Database(object):
 			params += l
 			sql += sqladd
 		if ts_type is not None:
-			sql += " and ts_type = %s"
-			params.append(ts_type)
+			sql += " and (" + " or ".join(["ts_type = %s"]*len(ts_type)) + ")"
+			params += ts_type
 		if name is not None:
 			sql += " and name ilike %s"
 			params.append("%{0}%".format(name))
 		if unit is not None:
-			sql += " and lower(units) = %s"
-			params.append(unit)
+			sql += " and (" + " or ".join(["lower(units) = %s"]*len(unit)) + ")"
+			params += unit
 			# FIXME: We really need a lookup table from unique
 			# sanitised unit IDs to unit names, rather than this hack
 			# with lower()

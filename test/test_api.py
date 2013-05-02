@@ -297,7 +297,25 @@ class TestAPI_WithSeriesMetadata(TestAPI_WithSeries):
 	def test_GetFilteredType(self):
 		self.req["QUERY_STRING"] = "ts_type=point"
 		self.api.get_series_list(self.req, self.res)
-		self.db.list_series.assert_called_with(ts_type="point")
+		self.db.list_series.assert_called_with(ts_type=["point"])
+		self.assertEqual(self.res.data.binary, self.sample_series)
+
+	def test_GetFilteredTypeMulti1(self):
+		self.req["QUERY_STRING"] = "ts_type=point,mean"
+		self.api.get_series_list(self.req, self.res)
+		self.db.list_series.assert_called_with(ts_type=["point","mean"])
+		self.assertEqual(self.res.data.binary, self.sample_series)
+
+	def test_GetFilteredTypeMulti2(self):
+		self.req["QUERY_STRING"] = "ts_type=point&ts_type=mean"
+		self.api.get_series_list(self.req, self.res)
+		self.db.list_series.assert_called_with(ts_type=["point","mean"])
+		self.assertEqual(self.res.data.binary, self.sample_series)
+
+	def test_GetFilteredTypeMulti3(self):
+		self.req["QUERY_STRING"] = "ts_type=point&ts_type=mean,stdev"
+		self.api.get_series_list(self.req, self.res)
+		self.db.list_series.assert_called_with(ts_type=["point","mean","stdev"])
 		self.assertEqual(self.res.data.binary, self.sample_series)
 
 	def test_GetFilteredBadType(self):
@@ -305,12 +323,30 @@ class TestAPI_WithSeriesMetadata(TestAPI_WithSeries):
 		self.api.get_series_list(self.req, self.res)
 		# The list_series function should be called here, and should
 		# fail to return anything useful.
-		self.db.list_series.assert_called_with(ts_type="tesseract")
+		self.db.list_series.assert_called_with(ts_type=["tesseract"])
 
 	def test_GetFilteredUnit(self):
 		self.req["QUERY_STRING"] = "unit=°c"
 		self.api.get_series_list(self.req, self.res)
-		self.db.list_series.assert_called_with(unit="°c")
+		self.db.list_series.assert_called_with(unit=["°c"])
+		self.assertEqual(self.res.data.binary, self.sample_series)
+
+	def test_GetFilteredUnitMulti1(self):
+		self.req["QUERY_STRING"] = "unit=°c,mv"
+		self.api.get_series_list(self.req, self.res)
+		self.db.list_series.assert_called_with(unit=["°c","mv"])
+		self.assertEqual(self.res.data.binary, self.sample_series)
+
+	def test_GetFilteredUnitMulti2(self):
+		self.req["QUERY_STRING"] = "unit=°c&unit=mv"
+		self.api.get_series_list(self.req, self.res)
+		self.db.list_series.assert_called_with(unit=["°c","mv"])
+		self.assertEqual(self.res.data.binary, self.sample_series)
+
+	def test_GetFilteredUnitMulti3(self):
+		self.req["QUERY_STRING"] = "unit=°c&unit=mv,%"
+		self.api.get_series_list(self.req, self.res)
+		self.db.list_series.assert_called_with(unit=["°c","mv","%"])
 		self.assertEqual(self.res.data.binary, self.sample_series)
 
 	def test_GetFilteredBadFacet(self):

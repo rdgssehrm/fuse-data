@@ -130,7 +130,9 @@ class APIWrapper(object):
 		for k, v in qstring.items():
 			lk = k.lower()
 			if lk in ("ts_type", "unit"):
-				facets[lk] = v[0]
+				facets[lk] = []
+				for x in v:
+					facets[lk] += x.split(",")
 			elif lk in ("period",):
 				try:
 					facets[lk] = int(v[0])
