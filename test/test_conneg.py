@@ -99,8 +99,8 @@ class TestConneg_CSV(TestConnegBase):
 					 ("Greenstreet", 1879, 1954))
 		self.transformers = { "csv": cn.CSVDataTransformer }
 		res = self.cn({"QUERY_STRING": "type=csv"}, self.sr)
-		self.assertEqual("".join(list(res)),
-"""Bogart,1899,1957\r
+		self.assertEqual(b"".join(list(res)),
+b"""Bogart,1899,1957\r
 Lorre,1904,1964\r
 Greenstreet,1879,1954\r
 """)
