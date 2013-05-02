@@ -86,6 +86,7 @@ def parse_timestamp(ts):
 			pass
 	raise ValueError("time data '{0}' cannot be parsed".format(ts))
 
+
 class APIWrapper(object):
 	def __init__(self, config, db, mapper):
 		mapper.wrap = muddleware.compose(
@@ -116,9 +117,51 @@ class APIWrapper(object):
 	def get_series_list(self, req, res):
 		"""Retrieve and return a list of all series
 		"""
-		# FIXME: Check the query string for search parameters
 		req["transformers"] = STD_TRANSFORMERS
-		res.data = BJI(self.db.list_series())
+
+		facets = {}
+		# Get query-string arguments
+		try:
+			qstring = urllib.parse.parse_qs(req["QUERY_STRING"])
+		except KeyError:
+			qstring = {}
+
+		# Sanitise parameters
+		for k, v in qstring.items():
+			lk = k.lower()
+			if lk in ("type", "unit"):
+				facets[lk] = v[0]
+			elif lk in ("period",):
+				try:
+					facets[lk] = int(v[0])
+				except ValueError:
+					fail_as(res, "400 Bad request",
+							"period parameter was not an integer", v[0])
+					return
+			elif lk == "period_min":
+				tmp = facets.setdefault("period", [None, None])
+				try:
+					tmp[0] = int(v[0])
+				except ValueError:
+					fail_as(res, "400 Bad request",
+							"period_min parameter was not an integer", v[0])
+					return
+				facets["period"] = tmp
+			elif lk == "period_max":
+				tmp = facets.setdefault("period", [None, None])
+				try:
+					tmp[1] = int(v[0])
+				except ValueError:
+					fail_as(res, "400 Bad request",
+							"period_max parameter was not an integer", v[0])
+					return
+				facets["period"] = tmp
+			else:
+				fail_as(res, "400 Bad request",
+						"Unknown request key provided", lk)
+				return
+
+		res.data = BJI(self.db.list_series(**facets))
 
 	def add_series(self, req, res):
 		"""Add a new series (data in JSON), returning the ID of the

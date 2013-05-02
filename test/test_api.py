@@ -236,13 +236,14 @@ class TestAPI_GetSeriesInfo(TestAPI_WithSeries):
 class TestAPI_WithSeriesMetadata(TestAPI_WithSeries):
 	def setUp(self):
 		TestAPI_WithSeries.setUp(self)
-		self.db.list_series = Mock(return_value={
+		self.sample_series = {
 			150: { "id": 150,
 				   "period": 900,
 				   "epoch": datetime.datetime(2012, 8, 28, 16, 30, 0, 0, _P15),
 				   "type": "period",
 				   "limit": 1000
-				   }})
+				   }}
+		self.db.list_series = Mock(return_value=self.sample_series)
 		self.db.facet_summary = Mock(side_effect=lambda nm: {
 			"units": (("°C", 2), ("mV", 3)),
 			}[nm])
@@ -269,6 +270,56 @@ class TestAPI_WithSeriesMetadata(TestAPI_WithSeries):
 					]},
 				])
 
+	def test_GetFilteredExactPeriod(self):
+		self.req["QUERY_STRING"] = "period=1800"
+		self.api.get_series_list(self.req, self.res)
+		self.db.list_series.assert_called_with(period=1800)
+		self.assertEqual(self.res.data.binary, self.sample_series)
+
+	def test_GetFilteredPeriodRange(self):
+		self.req["QUERY_STRING"] = "period_min=1800&period_max=2700"
+		self.api.get_series_list(self.req, self.res)
+		self.db.list_series.assert_called_with(period=[1800,2700])
+		self.assertEqual(self.res.data.binary, self.sample_series)
+
+	def test_GetFilteredPeriodBadRange1(self):
+		self.req["QUERY_STRING"] = "period_min=spoon"
+		self.api.get_series_list(self.req, self.res)
+		self.assertSequenceEqual(self.db.list_series.call_args_list, [])
+		self.assertEqual(self.res.result.split()[0], "400")
+
+	def test_GetFilteredPeriodBadRange2(self):
+		self.req["QUERY_STRING"] = "period_max=spoon"
+		self.api.get_series_list(self.req, self.res)
+		self.assertSequenceEqual(self.db.list_series.call_args_list, [])
+		self.assertEqual(self.res.result.split()[0], "400")
+
+	def test_GetFilteredType(self):
+		self.req["QUERY_STRING"] = "type=point"
+		self.api.get_series_list(self.req, self.res)
+		self.db.list_series.assert_called_with(type="point")
+		self.assertEqual(self.res.data.binary, self.sample_series)
+
+	def test_GetFilteredBadType(self):
+		self.req["QUERY_STRING"] = "type=tesseract"
+		self.api.get_series_list(self.req, self.res)
+		# The list_series function should be called here, and should
+		# fail to return anything useful.
+		self.db.list_series.assert_called_with(type="tesseract")
+
+	def test_GetFilteredUnit(self):
+		self.req["QUERY_STRING"] = "unit=°c"
+		self.api.get_series_list(self.req, self.res)
+		self.db.list_series.assert_called_with(unit="°c")
+		self.assertEqual(self.res.data.binary, self.sample_series)
+
+	def test_GetFilteredBadFacet(self):
+		self.req["QUERY_STRING"] = "rubber_duck=yellow"
+		self.api.get_series_list(self.req, self.res)
+		# The series list function should not be called here, as we
+		# are stopping the bad facets here
+		self.assertSequenceEqual(self.db.list_series.call_args_list, [])
+		self.assertEqual(self.res.result.split()[0], "400")
 
 class TestAPI_FailAs(unittest.TestCase):
 	def setUp(self):
