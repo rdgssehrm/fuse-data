@@ -89,6 +89,7 @@ class TestConneg(TestConnegBase):
 		args, kwargs = self.xmlxfm().transform.call_args
 		self.assertEqual(args[0], ["Sample"])
 
+
 class TestConneg_CSV(unittest.TestCase):
 	"""Validating the CSV transformer -- making sure that the
 	resulting output is the expected CSV format.
@@ -102,17 +103,28 @@ class TestConneg_CSV(unittest.TestCase):
 			"data": (("Bogart", 1899, 1957),
 					 ("Lorre", 1904, 1964),
 					 ("Greenstreet", 1879, 1954)),}
-		self.xfm = cn.CSVDataTransformer()
 		self.environ = {}
 
 	def test_CSV(self):
-		res = self.xfm.transform(self.data, self.environ)
+		xfm = cn.CSVDataTransformer()
+		res = xfm.transform(self.data, self.environ)
 		self.assertEqual(b"".join(list(res)),
 b"""Name,Born,Died\r
 string,date,date\r
 Bogart,1899,1957\r
 Lorre,1904,1964\r
 Greenstreet,1879,1954\r
+""")
+
+	def test_TSV(self):
+		xfm = cn.TSVDataTransformer()
+		res = xfm.transform(self.data, self.environ)
+		self.assertEqual(b"".join(list(res)),
+b"""Name\tBorn\tDied\r
+string\tdate\tdate\r
+Bogart\t1899\t1957\r
+Lorre\t1904\t1964\r
+Greenstreet\t1879\t1954\r
 """)
 
 if __name__ == '__main__':

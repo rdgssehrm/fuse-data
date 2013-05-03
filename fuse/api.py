@@ -250,6 +250,7 @@ class APIWrapper(object):
 		"""
 		req["transformers"] = STD_TRANSFORMERS
 		req["transformers"]["csv"] = conneg.CSVDataTransformer
+		req["transformers"]["tsv"] = conneg.TSVDataTransformer
 		try:
 			sids = [int(req["wsgiorg.routing_args"][1]["series_id"])]
 		except KeyError:

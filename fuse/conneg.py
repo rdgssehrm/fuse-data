@@ -172,7 +172,7 @@ class JSONTransformer(Transformer):
 	def transform(self, binary, environ):
 		return [json.dumps(binary, cls=muddleware.JSONDateEncoder).encode("utf8")]
 
-class CSVDataTransformer(Transformer):
+class CSVTypeDataTransformer(Transformer):
 	class _OutHandler(object):
 		"""Class implementing an iterator which uses a CSV writer
 		object to generate its output.
@@ -180,9 +180,10 @@ class CSVDataTransformer(Transformer):
 		This class also implements the write() method so that the CSV
 		writer can actually write a line to it.
 		"""
-		def __init__(self, data):
+		def __init__(self, data, dialect):
 			self.value = []
 			self.data = data
+			self.dialect = dialect
 
 		def write(self, x):
 			self.value.append(x)
@@ -191,7 +192,7 @@ class CSVDataTransformer(Transformer):
 			"""Return an iterator based on this object: actually a
 			generator function
 			"""
-			fmt = csv.writer(self, dialect="excel")
+			fmt = csv.writer(self, dialect=self.dialect)
 			fmt.writerow([m["name"] for m in self.data["meta"]])
 			fmt.writerow([m["units"] for m in self.data["meta"]])
 
@@ -202,4 +203,10 @@ class CSVDataTransformer(Transformer):
 
 	def transform(self, binary, environ):
 		# Process just a time/value pair into a CSV output
-		return self._OutHandler(binary)
+		return self._OutHandler(binary, self.dialect)
+
+class CSVDataTransformer(CSVTypeDataTransformer):
+	dialect = "excel"
+
+class TSVDataTransformer(CSVTypeDataTransformer):
+	dialect = "excel-tab"
