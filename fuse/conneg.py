@@ -192,7 +192,10 @@ class CSVDataTransformer(Transformer):
 			generator function
 			"""
 			fmt = csv.writer(self, dialect="excel")
-			for line in self.data:
+			fmt.writerow([m["name"] for m in self.data["meta"]])
+			fmt.writerow([m["units"] for m in self.data["meta"]])
+
+			for line in self.data["data"]:
 				fmt.writerow(line)
 				yield "".join(self.value).encode("utf8")
 				self.value = []

@@ -300,7 +300,7 @@ class APIWrapper(object):
 				fail_as(res, "404 Not found", "Series not found", str(sid))
 				return
 
-		res.data = BJI(list(self.db.get_values(sids, **kwargs)))
+		res.data = BJI(self.db.get_values(sids, **kwargs))
 
 	def add_data(self, req, res):
 		"""Add data to a series. Data format is an array of (time,

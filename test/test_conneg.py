@@ -89,18 +89,28 @@ class TestConneg(TestConnegBase):
 		args, kwargs = self.xmlxfm().transform.call_args
 		self.assertEqual(args[0], ["Sample"])
 
-class TestConneg_CSV(TestConnegBase):
+class TestConneg_CSV(unittest.TestCase):
 	"""Validating the CSV transformer -- making sure that the
 	resulting output is the expected CSV format.
 	"""
-	def test_CSV(self):
-		self.data = (("Bogart", 1899, 1957),
+	def setUp(self):
+		self.data = {
+			"meta": [
+				{ "name": "Name", "units": "string" },
+				{ "name": "Born", "units": "date" },
+				{ "name": "Died", "units": "date" } ],
+			"data": (("Bogart", 1899, 1957),
 					 ("Lorre", 1904, 1964),
-					 ("Greenstreet", 1879, 1954))
-		self.transformers = { "csv": cn.CSVDataTransformer }
-		res = self.cn({"QUERY_STRING": "type=csv"}, self.sr)
+					 ("Greenstreet", 1879, 1954)),}
+		self.xfm = cn.CSVDataTransformer()
+		self.environ = {}
+
+	def test_CSV(self):
+		res = self.xfm.transform(self.data, self.environ)
 		self.assertEqual(b"".join(list(res)),
-b"""Bogart,1899,1957\r
+b"""Name,Born,Died\r
+string,date,date\r
+Bogart,1899,1957\r
 Lorre,1904,1964\r
 Greenstreet,1879,1954\r
 """)

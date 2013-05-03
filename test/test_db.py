@@ -102,30 +102,41 @@ class TestDBWithSeries(TestDBWithSeriesCommon):
 	def test_AddData(self):
 		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
 		v = self.db.add_value(self.sid, stamp, 134.6)
-		d = list(self.db.get_values([self.sid]))
+		d = self.db.get_values([self.sid])
 
 		self.assertTrue(v)
-		self.assertEqual(len(d), 1)
-		self.assertEqual(d[0][0], stamp)
-		self.assertAlmostEqual(d[0][1], 134.6)
+		self.assertIn("meta", d)
+		self.assertIn("data", d)
+
+		self.assertEqual(
+			d["meta"],
+			[{ "name": "Date", "units": "date/time" },
+			 { "id": self.sid,
+			  "name": "convergent",
+			  "ts_type": "point",
+			  "units": "°C" }])
+
+		self.assertEqual(len(d["data"]), 1)
+		self.assertEqual(d["data"][0][0], stamp)
+		self.assertAlmostEqual(d["data"][0][1], 134.6)
 
 	def test_AddData_FailDataRange(self):
 		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
 		v = self.db.add_value(self.sid, stamp, "James di Griz")
 		self.assertFalse(v)
-		d = list(self.db.get_values([self.sid]))
-		self.assertEqual(len(d), 0)
+		d = self.db.get_values([self.sid])
+		self.assertEqual(len(d["data"]), 0)
 
 	def test_UpdateData(self):
 		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
 		v = self.db.add_value(self.sid, stamp, 134.6)
 		v = self.db.add_value(self.sid, stamp, 218.2)
-		d = list(self.db.get_values([self.sid]))
+		d = self.db.get_values([self.sid])
 
 		self.assertTrue(v)
-		self.assertEqual(len(d), 1)
-		self.assertEqual(d[0][0], stamp)
-		self.assertAlmostEqual(d[0][1], 218.2)
+		self.assertEqual(len(d["data"]), 1)
+		self.assertEqual(d["data"][0][0], stamp)
+		self.assertAlmostEqual(d["data"][0][1], 218.2)
 
 	def test_IsSeriesPositive(self):
 		self.assertTrue(self.db.is_series(self.sid))
@@ -199,6 +210,76 @@ class TestDBWithMultiSeries(TestDBWithMultiSeriesCommon):
 		with self.assertRaises(Exception):
 			res = self.db.facet_summary("diamond")
 
+class testParseData(unittest.TestCase):
+	def test_SingleSeries(self):
+		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
+		inc = datetime.timedelta(seconds=10)
+		data = ((stamp+0*inc, 7, 265),
+				(stamp+1*inc, 7, 270),
+				(stamp+2*inc, 7, 269),
+				)
+		meta = ((7, "Flux", "mean", "°C/m²"),)
+		x = db._parse_data(data, meta)
+		self.assertSequenceEqual(
+			[[stamp+0*inc, 265], [stamp+1*inc, 270], [stamp+2*inc, 269]],
+			list(x))
+
+	def test_MultiSeries_Lockstep(self):
+		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
+		inc = datetime.timedelta(seconds=10)
+		data = ((stamp+0*inc, 7, 265),
+				(stamp+0*inc, 8, 100),
+				(stamp+1*inc, 7, 270),
+				(stamp+1*inc, 8, 99),
+				(stamp+2*inc, 7, 269),
+				(stamp+2*inc, 8, 98),
+				)
+		meta = ((7, "Flux", "mean", "°C/m²"),
+				(8, "Fluent", "generous", "°C·m²"),)
+		x = db._parse_data(data, meta)
+		self.assertSequenceEqual(
+			[[stamp+0*inc, 265, 100],
+			 [stamp+1*inc, 270, 99],
+			 [stamp+2*inc, 269, 98]],
+			list(x))
+
+	def test_MultiSeries_Gaps(self):
+		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
+		inc = datetime.timedelta(seconds=10)
+		data = ((stamp+0*inc, 7, 265),
+				(stamp+0*inc, 8, 100),
+				(stamp+1*inc, 7, 270),
+				(stamp+2*inc, 7, 269),
+				(stamp+2*inc, 8, 98),
+				)
+		meta = ((7, "Flux", "mean", "°C/m²"),
+				(8, "Fluent", "generous", "°C·m²"),)
+		x = db._parse_data(data, meta)
+		self.assertSequenceEqual(
+			[[stamp+0*inc, 265, 100],
+			 [stamp+1*inc, 270, None],
+			 [stamp+2*inc, 269, 98]],
+			list(x))
+
+	def test_MultiSeries_Alternating(self):
+		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
+		inc = datetime.timedelta(seconds=10)
+		data = ((stamp+0*inc, 7, 265),
+				(stamp+1*inc, 8, 100),
+				(stamp+2*inc, 7, 270),
+				(stamp+3*inc, 8, 99),
+				(stamp+4*inc, 7, 269),
+				)
+		meta = ((7, "Flux", "mean", "°C/m²"),
+				(8, "Fluent", "generous", "°C·m²"),)
+		x = db._parse_data(data, meta)
+		self.assertSequenceEqual(
+			[[stamp+0*inc, 265, None],
+			 [stamp+1*inc, None, 100],
+			 [stamp+2*inc, 270, None],
+			 [stamp+3*inc, None, 99],
+			 [stamp+4*inc, 269, None],],
+			list(x))
 
 if __name__ == '__main__':
 	unittest.main()

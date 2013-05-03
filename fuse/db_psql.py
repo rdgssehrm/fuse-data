@@ -6,6 +6,8 @@ import datetime
 
 import psycopg2
 
+import fuse.db
+
 CURRENT_VERSION = 1
 _UTC = datetime.timezone.utc
 
@@ -146,21 +148,33 @@ class Database(object):
 		return rv
 
 	def get_values(self, sids, from_ts=None, to_ts=None):
-		"""Return a sorted iterator of (ts, value) pairs from the given series
+		"""Return a sorted iterator of (ts, value, value...) tuples
+		from the given list of series
 		"""
-		qry = "select stamp, value from data where "
+		# Get the relevant series metadata
+		qry = "select id, name, ts_type, units from series where "
+		qry += "(" + " or ".join(["id = %s"]*len(sids)) + ")"
+		params = sids[:]
+		meta = list(self._query(qry, params))
+
+		qry = "select stamp, series_id, value from data where "
 		qry += "(" + " or ".join(["series_id = %s"]*len(sids)) + ")"
-		params = sids
+		params = sids[:]
 		if from_ts is not None:
 			qry += " and stamp >= %s"
 			params.append(from_ts)
 		if to_ts is not None:
 			qry += " and stamp < %s"
 			params.append(to_ts)
-		qry += " order by stamp"
+		qry += " order by stamp, series_id"
 
 		cur = self._query(qry, params)
-		return ([x for x in row] for row in cur)
+
+		return {
+			"meta": [{"name": "Date", "units": "date/time"}]
+					+ [{"id": m[0], "name": m[1], "ts_type": m[2], "units": m[3]}
+					   for m in meta],
+			"data": list(fuse.db._parse_data(cur, meta)), }
 
 	def facet_summary(self, facet_type):
 		"""Return a list of (label, total) pairs for the facet requested
