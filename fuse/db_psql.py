@@ -145,11 +145,12 @@ class Database(object):
 		self.db.autocommit = True
 		return rv
 
-	def get_values(self, sid, from_ts=None, to_ts=None):
+	def get_values(self, sids, from_ts=None, to_ts=None):
 		"""Return a sorted iterator of (ts, value) pairs from the given series
 		"""
-		qry = "select stamp, value from data where series_id = %s"
-		params = [sid,]
+		qry = "select stamp, value from data where "
+		qry += "(" + " or ".join(["series_id = %s"]*len(sids)) + ")"
+		params = sids
 		if from_ts is not None:
 			qry += " and stamp >= %s"
 			params.append(from_ts)
@@ -159,7 +160,7 @@ class Database(object):
 		qry += " order by stamp"
 
 		cur = self._query(qry, params)
-		return ((row[0], row[1]) for row in cur)
+		return ([x for x in row] for row in cur)
 
 	def facet_summary(self, facet_type):
 		"""Return a list of (label, total) pairs for the facet requested

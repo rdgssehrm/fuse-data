@@ -23,6 +23,7 @@ REST API structure:
 		data/		GET for series data,
 					POST to add/modify data records
 /api/meta/facets/	GET list of searchable facets and their options
+/api/source/		GET with parameters to retrieve multiple series' data
 """
 
 # Helper functions
@@ -112,6 +113,8 @@ class APIWrapper(object):
 				   POST=self.add_data)
 		mapper.add("/meta/facets[/]",
 				   GET=self.get_search_facets)
+		mapper.add("/source[/]",
+				   GET=self.get_data)
 		self.db = db
 
 	def get_series_list(self, req, res):
@@ -247,10 +250,10 @@ class APIWrapper(object):
 		"""
 		req["transformers"] = STD_TRANSFORMERS
 		req["transformers"]["csv"] = conneg.CSVDataTransformer
-		sid = int(req["wsgiorg.routing_args"][1]["series_id"])
-		if not self.db.is_series(sid):
-			fail_as(res, "404 Not found", "Series not found", str(sid))
-			return
+		try:
+			sids = [int(req["wsgiorg.routing_args"][1]["series_id"])]
+		except KeyError:
+			sids = None
 
 		kwargs = {}
 		# Get query-string arguments
@@ -275,11 +278,29 @@ class APIWrapper(object):
 					fail_as(res, "400 Unparsable parameter",
 							"End date was not parsable", v[0])
 					return
+			if lk == "sid":
+				if sids is not None:
+					fail_as(res, "400 Incompatible usage",
+							"Cannot supply sid= query parameter for a single"
+							" series", "")
+				sids = []
+				try:
+					for s in v:
+						for sid in s.split(","):
+							sids.append(int(sid))
+				except ValueError:
+					fail_as(res, "400 Unparsable parameter",
+							"Value was not parsable as series IDs", sid)
 			# FIXME: Further processing of other parameters here.
 			# No parameter should be passed unvalidated or without a
 			# definite key.
 
-		res.data = BJI(list(self.db.get_values(sid, **kwargs)))
+		for sid in sids:
+			if not self.db.is_series(sid):
+				fail_as(res, "404 Not found", "Series not found", str(sid))
+				return
+
+		res.data = BJI(list(self.db.get_values(sids, **kwargs)))
 
 	def add_data(self, req, res):
 		"""Add data to a series. Data format is an array of (time,

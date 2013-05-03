@@ -172,8 +172,37 @@ class TestAPI_WithSeriesAndData(TestAPI_WithSeries):
 
 	def testAPI_GetSeriesData_NoFilter(self):
 		self.api.get_data(self.req, self.res)
-		self.db.get_values.assert_called_once_with(19)
+		self.db.get_values.assert_called_once_with([19])
 		self.assertCountEqual(list(self.res.data.binary), self.dataset)
+
+	def testAPI_GetSeriesData_Multi1(self):
+		self.req["wsgiorg.routing_args"] = [None, {}]
+		self.req["QUERY_STRING"] = "sid=19,20"
+		self.api.get_data(self.req, self.res)
+		self.db.get_values.assert_called_once_with([19, 20])
+
+	def testAPI_GetSeriesData_Multi2(self):
+		self.req["wsgiorg.routing_args"] = [None, {}]
+		self.req["QUERY_STRING"] = "sid=19&sid=20"
+		self.api.get_data(self.req, self.res)
+		self.db.get_values.assert_called_once_with([19, 20])
+
+	def testAPI_GetSeriesData_Multi3(self):
+		self.req["wsgiorg.routing_args"] = [None, {}]
+		self.req["QUERY_STRING"] = "sid=19&sid=20,21"
+		self.api.get_data(self.req, self.res)
+		self.db.get_values.assert_called_once_with([19, 20, 21])
+
+	def testAPI_GetSeriesData_MultiFailTwoParameters(self):
+		self.req["QUERY_STRING"] = "sid=20"
+		self.api.get_data(self.req, self.res)
+		self.assertEqual(self.res.result.split()[0], "400")
+
+	def testAPI_GetSeriesData_MultiFailBadInt(self):
+		self.req["wsgiorg.routing_args"] = [None, {}]
+		self.req["QUERY_STRING"] = "sid=haveyouseenhim"
+		self.api.get_data(self.req, self.res)
+		self.assertEqual(self.res.result.split()[0], "400")
 
 	def testAPI_GetSeriesData_BadSeries(self):
 		self.db.is_series.return_value = False
@@ -184,7 +213,7 @@ class TestAPI_WithSeriesAndData(TestAPI_WithSeries):
 		self.req["QUERY_STRING"] = "captain=Nemo"
 		self.api.get_data(self.req, self.res)
 		# We should ignore the string and return the original data set
-		self.db.get_values.assert_called_once_with(19)
+		self.db.get_values.assert_called_once_with([19])
 		self.assertCountEqual(list(self.res.data.binary), self.dataset)
 
 	def testAPI_GetSeriesData_BadParam1(self):
@@ -201,7 +230,7 @@ class TestAPI_WithSeriesAndData(TestAPI_WithSeries):
 		self.req["QUERY_STRING"] = "STARTDATE=2012-08-28T13:30:00%2b0000"
 		self.api.get_data(self.req, self.res)
 		self.db.get_values.assert_called_once_with(
-			19,
+			[19],
 			from_ts=datetime.datetime(2012, 8, 28, 13, 30, 0, 0, datetime.timezone.utc))
 		self.assertCountEqual(list(self.res.data.binary), self.dataset)
 
@@ -209,7 +238,7 @@ class TestAPI_WithSeriesAndData(TestAPI_WithSeries):
 		self.req["QUERY_STRING"] = "eNdDaTe=2012-08-28T13:30:00%2b0000"
 		self.api.get_data(self.req, self.res)
 		self.db.get_values.assert_called_once_with(
-			19,
+			[19],
 			to_ts=datetime.datetime(2012, 8, 28, 13, 30, 0, 0, datetime.timezone.utc))
 		self.assertCountEqual(list(self.res.data.binary), self.dataset)
 
@@ -217,7 +246,7 @@ class TestAPI_WithSeriesAndData(TestAPI_WithSeries):
 		self.req["QUERY_STRING"] = "STARTDATE=2012-08-28T13:30:00%2b0000&enddate=2012-08-28T14:30:00%2b0000"
 		self.api.get_data(self.req, self.res)
 		self.db.get_values.assert_called_once_with(
-			19,
+			[19],
 			from_ts=datetime.datetime(2012, 8, 28, 13, 30, 0, 0, datetime.timezone.utc),
 			to_ts=datetime.datetime(2012, 8, 28, 14, 30, 0, 0, datetime.timezone.utc))
 		self.assertCountEqual(list(self.res.data.binary), self.dataset)

@@ -102,7 +102,7 @@ class TestDBWithSeries(TestDBWithSeriesCommon):
 	def test_AddData(self):
 		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
 		v = self.db.add_value(self.sid, stamp, 134.6)
-		d = list(self.db.get_values(self.sid))
+		d = list(self.db.get_values([self.sid]))
 
 		self.assertTrue(v)
 		self.assertEqual(len(d), 1)
@@ -113,14 +113,14 @@ class TestDBWithSeries(TestDBWithSeriesCommon):
 		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
 		v = self.db.add_value(self.sid, stamp, "James di Griz")
 		self.assertFalse(v)
-		d = list(self.db.get_values(self.sid))
+		d = list(self.db.get_values([self.sid]))
 		self.assertEqual(len(d), 0)
 
 	def test_UpdateData(self):
 		stamp = datetime.datetime(2010, 2, 14, 12, 00, 30, tzinfo=_UTC)
 		v = self.db.add_value(self.sid, stamp, 134.6)
 		v = self.db.add_value(self.sid, stamp, 218.2)
-		d = list(self.db.get_values(self.sid))
+		d = list(self.db.get_values([self.sid]))
 
 		self.assertTrue(v)
 		self.assertEqual(len(d), 1)
